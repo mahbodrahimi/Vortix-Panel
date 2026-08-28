@@ -8,7 +8,8 @@
       <meta name="apple-mobile-web-app-title" content="Nahan">
       <meta name="format-detection" content="telephone=no">
       <meta name="msapplication-tap-highlight" content="no">
-      <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><text x='50' y='62' font-size='40' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>N</text></svg>">
+      <link rel="icon" href="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" type="image/png">
+      <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png">
       <title>Vortix Gateway</title>
       <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&amp;display=swap" rel="stylesheet">
       <script src="https://cdn.jsdelivr.net/gh/itsyebekhe/nahan@main/tailwindcss.js"></script>
@@ -296,8 +297,8 @@ html.dark select option {
       <!-- Global Controls -->
       <div class="fixed top-4 end-4 md:top-5 md:end-5 flex items-center gap-2 z-50">
           <span id="top-version-badge" class="hidden md:inline-block px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold" style="background: color-mix(in srgb, var(--color-primary) 12%, transparent); border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent); color: var(--color-primary);">v__CURRENT_VERSION__</span>
-          <a href="https://github.com/itsyebekhe/nahan" id="github-link-btn" target="_blank" class="hidden md:inline-flex btn-top-bar p-2 rounded-xl transition-all" style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted);">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
+          <a href="https://t.me/VortixVpn/" id="telegram-link-btn" target="_blank" class="hidden md:inline-flex btn-top-bar p-2 rounded-xl transition-all" style="background: var(--color-surface); border: 1px solid var(--color-border); color: #0088cc;">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
           </a>
           <button onclick="toggleLang()" id="lang-toggle" class="btn-top-bar px-3 py-1.5 rounded-xl text-sm font-bold transition-all" style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);">EN</button>
           <button onclick="toggleTheme()" class="btn-top-bar p-2 rounded-xl transition-all" style="background: var(--color-surface); border: 1px solid var(--color-border); color: #f59e0b;">
@@ -318,7 +319,7 @@ html.dark select option {
               <div class="text-center mb-8">
                   <div class="relative inline-flex items-center justify-center mb-5">
                       <div class="lock-pulse relative w-20 h-20 rounded-3xl flex items-center justify-center" style="background: linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 25%, transparent), color-mix(in srgb, var(--color-primary) 8%, transparent)); border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); box-shadow: 0 0 40px color-mix(in srgb, var(--color-primary) 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.08);">
-                          <svg class="w-9 h-9 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                          <svg class="w-9 h-9 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                       </div>
                   </div>
                   <h2 class="text-3xl font-black" style="color: var(--color-text);" data-i18n="title">Vortix Gateway</h2>
@@ -360,9 +361,9 @@ html.dark select option {
           <!-- SIDEBAR (Desktop) -->
           <aside class="hidden md:flex w-64 bg-[var(--color-surface)]  border-e border-slate-200 dark:border-darkborder flex-col z-20 shrink-0">
               <div class="flex items-center p-6 border-b border-slate-100 dark:border-darkborder/50">
-                  <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-primary flex items-center justify-center me-3 shrink-0"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+                  <img src="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" class="w-10 h-10 rounded-xl me-3 shrink-0" alt="Vortix">
                   <div class="flex flex-col">
-                      <h1 class="font-black text-xl leading-none" data-i18n="title">Vortix</h1>
+                      <h1 class="font-black text-xl leading-none flex items-center gap-1" data-i18n="title">Vortix <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></h1>
                       <span id="app-version" class="text-[10px] font-mono text-slate-400 mt-1 font-semibold">v__CURRENT_VERSION__</span>
                   </div>
               </div>
@@ -394,10 +395,6 @@ html.dark select option {
                   <button onclick="switchTab('users')" id="tab-users" class="nav-item flex items-center w-full px-4 py-3 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white group">
                       <svg class="w-6 h-6 me-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                       <span class="font-semibold" data-i18n="tab_users">Clients</span>
-                  </button>
-                  <button onclick="switchTab('help')" id="tab-help" class="nav-item flex items-center w-full px-4 py-3 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white group">
-                      <svg class="w-6 h-6 me-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                      <span class="font-semibold" data-i18n="tab_help">Help & FAQ</span>
                   </button>
               </nav>
               <div class="p-4 border-t border-slate-100 dark:border-darkborder/50">
@@ -774,7 +771,8 @@ html.dark select option {
                                       <button type="button" onclick="const n=document.getElementById('cfg-pass');n.type=n.type==='password'?'text':'password'" class="absolute inset-y-0 end-0 flex items-center px-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">👁️</button>
                                   </div>
                               </div>
-                              <div class="space-y-1 md:col-span-2">
+                              <!-- GitHub repo section - HIDDEN -->
+                              <div class="space-y-1 md:col-span-2 hidden">
                                   <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_github_repo">GitHub Update Repository</label>
                                   <input type="text" id="cfg-github-repo" placeholder="Vortix/Vortix-Panel" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
                                   <div class="flex justify-start items-center gap-2 mt-2">
@@ -995,13 +993,12 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                   </div>
                               </div>
                           </div>
-                          <!-- Section: Upstream VLESS -->
+                          <!-- Section: Upstream VLESS (Sing-Box/Clash removed) -->
                           <div class="bg-[var(--color-surface)]  rounded-2xl border border-slate-200 dark:border-darkborder overflow-hidden" data-accordion="">
                               <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                   <div class="flex items-center gap-3">
                                       <span class="text-lg">🔗</span>
                                       <span class="text-sm font-bold text-slate-700 dark:text-white" data-i18n="adv_upstream_title">Upstream VLESS</span>
-                                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" data-i18n="adv_upstream_badge">Sing-Box / Clash</span>
                                   </div>
                                   <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                               </button>
@@ -1011,40 +1008,11 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                       <div class="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/30 text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-sans space-y-2">
                                           <p data-i18n="adv_upstream_desc1"><strong>این بخش چیکار میکنه؟</strong><br>یه سرور رایگان VLESS (مثلاً از سایت‌هایی مثل RaceVPN یا SSHMax) به پنل معرفی می‌کنی تا تمام ترافیکت از اون سوراخ رد بشه. یعنی IP خروجیت میشه IP اون سرور.</p>
                                           <p data-i18n="adv_upstream_desc2"><strong>چرا لازمه؟</strong><br>بعضی وقتا به IP یه کشور خاص (مثلاً آلمان یا آمریکا) نیاز داری ولی نمی‌خوای سرور بخری. با این بخش می‌تونی رایگان از IP اون کشور استفاده کنی.</p>
-                                          <p data-i18n="adv_upstream_desc3"><strong>چطوری استفاده کنم؟</strong><br>۱. از یکی از سایت‌های زیر یه لینک VLESS بگیر<br>۲. لینک رو اینجا paste کن<br>۳. Save کن<br>۴. از لینک سابسکریپشن (فرمت Sing-Box یا Clash) استفاده کن</p>
+                                          <p data-i18n="adv_upstream_desc3"><strong>چطوری استفاده کنم؟</strong><br>۱. لینک VLESS رو کپی کن<br>۲. لینک رو اینجا paste کن<br>۳. Save کن</p>
                                       </div>
                                       <div class="space-y-1">
                                           <label class="block text-sm font-bold text-slate-600 dark:text-slate-300" data-i18n="adv_upstream_label">لینک سرور VLESS</label>
                                           <textarea id="cfg-upstream" rows="3" placeholder="vless://uuid@server:port?type=ws&amp;security=tls&amp;sni=example.com&amp;path=/ws#Upstream-Name" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none font-mono text-xs resize-none"></textarea>
-                                          <p class="text-xs text-slate-400 mt-1" data-i18n="adv_upstream_hint">لینک VLESS رو از سایت‌های زیر کپی کن و اینجا بذار:</p>
-                                      </div>
-                                      <!-- Free VLESS providers -->
-                                      <div class="space-y-2">
-                                          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider" data-i18n="adv_upstream_providers">سایت‌های دریافت لینک رایگان:</p>
-                                          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                              <a href="https://sshmax.net" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>SSHMax</span>
-                                              </a>
-                                              <a href="https://sshocean.com" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>SSHOcean</span>
-                                              </a>
-                                              <a href="https://vpnjantit.com" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>VPNJantit</span>
-                                              </a>
-                                              <a href="https://fcbind.com" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>FCBind</span>
-                                              </a>
-                                              <a href="https://sslvpn.buzz" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>SslVpn</span>
-                                              </a>
-                                              <a href="https://cloudv2ray.com" target="_blank" class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-darkborder text-xs text-slate-600 dark:text-slate-300 hover:border-primary transition-colors">
-                                                  <span>🌐</span><span>CloudV2ray</span>
-                                              </a>
-                                          </div>
-                                      </div>
-                                      <div class="mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-xs text-amber-700 dark:text-amber-300 leading-relaxed font-sans flex gap-2">
-                                          <span>⚠️</span>
-                                          <span data-i18n="adv_upstream_warning">کانفیگ‌های رایگان معمولاً چند روز بیشتر دوام ندارن. اگه اتصال قطع شد، لینک جدید بگیر و جایگزین کن. همچنین فقط با فرمت‌های Sing-Box و Clash کار می‌کنه.</span>
                                       </div>
                                   </div>
                               </div>
@@ -1219,12 +1187,12 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                               </div>
                           </div>
 
-                          <!-- Section: Cloudflare -->
+                          <!-- Section: Update Settings (formerly Cloudflare) -->
                           <div class="bg-[var(--color-surface)]  rounded-2xl border border-slate-200 dark:border-darkborder overflow-hidden" data-accordion="">
                               <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                   <div class="flex items-center gap-3">
                                       <span class="text-lg">☁️</span>
-                                      <span class="text-sm font-bold text-slate-700 dark:text-white" data-i18n="adv_cloudflare">Cloudflare</span>
+                                      <span class="text-sm font-bold text-slate-700 dark:text-white" data-i18n="adv_cloudflare">Update Settings</span>
                                   </div>
                                   <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                               </button>
@@ -1655,149 +1623,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                           </div>
                       </div>
 
-                      <!-- HELP & FAQ VIEW -->
-                      <div id="view-help" class="hidden space-y-6">
-                          <div class="bg-[var(--color-surface)]/70 backdrop-blur-xl rounded-3xl p-6 shadow-lg border border-slate-200 dark:border-darkborder/50 relative overflow-hidden">
-                              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                                  <div>
-                                      <h3 class="text-lg font-black text-slate-800 dark:text-white" data-i18n="help_title">Help & Common Questions</h3>
-                                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" data-i18n="help_desc">Learn about fields, features, and troubleshooting on your Vortix Gateway.</p>
-                                  </div>
-                                  <!-- Search bar -->
-                                  <div class="relative w-full md:w-72">
-                                      <input type="text" id="faq-search" oninput="filterFAQs()" placeholder="Search FAQ / جستجو در راهنما..." class="w-full px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkborder rounded-xl text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                                  </div>
-                              </div>
-
-                              <div class="space-y-4" id="faq-list">
-                                  <!-- Item 1 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">What is Vortix Gateway? /دروازه ورنیکس چیست؟</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr">Vortix Gateway is an advanced, high-performance, single-file subscription and proxy manager built directly for Cloudflare Workers. It acts as a gateway to securely distribute configurations (Clash, Sing-box, Trojan, VMess) to clients while concealing the main panel's backend server behind Cloudflare's global edge network.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80">دروازه ورتیکس یک سیستم مدیریت اشتراک و پروکسی پیشرفته و تک‌فایلی است که توسط تیم ورتیکس توسعه یافته است. این سیستم به عنوان یک دروازه عمل می‌کند تا کانفیگ‌ها (Clash, Sing-box, Trojan, VMess) را به صورت امن توزیع کند و سرور اصلی شما را پشت شبکه جهانی کلودفلر پنهان کند.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  <!-- Item 2 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">How does "Auto-Update" work? / قابلیت «آپدیت خودکار» چطور کار می‌کند؟</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr">When Auto-Update is enabled in System settings, a Cron Trigger runs on the background periodically checking the GitHub repository for updates. If a newer version is released, the worker automatically pulls the fresh code, applies the selected format (Normal or Obfuscated), deploys itself directly, and triggers updates across all linked panels/nodes.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80">وقتی آپدیت خودکار در تنظیمات فعال باشد، یک کرون جاب به صورت دوره‌ای در پس‌زمینه نسخه مخزن گیت‌هاب را بررسی می‌کند. در صورت وجود نسخه جدیدتر، ورکر به صورت خودکار کد جدید را دریافت کرده، قالب انتخابی (معمولی یا مبهم‌سازی‌شده) را اعمال می‌کند، خود را مستقیماً دپلوی کرده و تمام نودها/پنل‌های متصل را همگام‌سازی می‌کند.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  <!-- Item 3 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">What is the difference between Normal and Obfuscated formats? / تفاوت فرمت معمولی و مبهم‌سازی چیست؟</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr"><strong>Normal:</strong> Deploys raw JS code. Easily readable, but prone to traffic analysis/firewall scanning.<br><strong>Obfuscated:</strong> Uses XOR byte-shifting to obscure the source code. The Cloudflare Edge compiles it at runtime using high-speed dynamic decoders, preventing third-party scanning.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80"><strong>معمولی:</strong> کد خام جاوااسکریپت دپلوی می‌شود. خوانایی آسانی دارد اما در معرض آنالیز ترافیک فایروال‌ها است.<br><strong>مبهم‌سازی‌شده:</strong> از شیفت بایت XOR برای پنهان‌سازی کد استفاده می‌کند. کلودفلر در زمان اجرا آن را به سرعت رمزگشایی می‌کند.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  <!-- Item 4 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">What are "Clients" & "Subscription Fake Entries"? / کاربران و ورودی‌های اطلاعاتی اشتراک چیست؟</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr">The <strong>Clients</strong> tab lets you provision individual subscriber tokens with specific limits (Quota, Expiry, IP connection count limits). <strong>Subscription Fake Entries</strong> customize what gets shown in the subscription profile UI inside the client app, such as remaining traffic or days left using placeholder patterns like <code>{usage}</code> and <code>{expiry}</code>.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80">تب <strong>کاربران</strong> به شما اجازه می‌دهد اشتراک‌های یکتا با محدودیت‌های ترافیک، تاریخ انقضا و تعداد اتصالات همزمان بسازید. <strong>ورودی‌های اطلاعاتی اشتراک</strong> مشخص می‌کند چه پیام‌هایی با کدهای پویایی مانند <code>{usage}</code> و <code>{expiry}</code> درون نرم‌افزار کاربر نمایش داده شوند.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  <!-- Item 5 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">What are "Other Nodes" / linked panels? / «سایر نودها» (پنل‌های متصل) چیست؟</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr">"Other Nodes" represents external linked panels. By generating a Panel API Key and registering the child node's URL, the main panel automatically synchronizes, updates, and deploys the identical worker code to all linked nodes whenever an update is triggered on the main panel.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80">«سایر نودها» پنل‌های فرعی متصل هستند. با ساخت یک کلید دسترسی پنل (API Key) و ثبت آدرس نود فرعی، پنل اصلی با هر بروزرسانی به صورت خودکار نسخه جدید را برای تمام نودهای متصل ارسال و دپلوی می‌کند.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  <!-- Item 6 -->
-                                  <div class="faq-item bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-darkborder/50 p-4 transition-all duration-200">
-                                      <button onclick="toggleFAQ(this)" class="w-full flex items-center justify-between text-start focus:outline-none font-bold text-slate-800 dark:text-white hover:text-primary transition-colors">
-                                          <span class="flex items-center gap-2">
-                                              <span class="text-primary text-sm">❓</span>
-                                              <span class="text-sm md:text-base">Explain critical fields like Clean IPs and Proxy IPs / توضیح فیلدهای آی‌پی تمیز و پروکسی آی‌پی</span>
-                                          </span>
-                                          <svg class="w-5 h-5 transform transition-transform duration-200 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                      </button>
-                                      <div class="faq-content hidden mt-3 space-y-3 text-xs md:text-sm leading-relaxed">
-                                          <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30" dir="ltr">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white">EN</span><span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">English</span></div>
-                                              <p class="text-slate-700 dark:text-blue-200/80 text-left" dir="ltr"><strong>Clean IPs:</strong> Clean non-filtered Cloudflare IPs. The gateway generates unique config sets multiplied for each clean IP added here, giving users redundancy.<br><strong>Proxy IPs:</strong> Behind-the-scene IPv4/IPv6 transit nodes to fetch data from blocking target sites.</p>
-                                          </div>
-                                          <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                                              <div class="flex items-center gap-1.5 mb-2"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500 text-white">FA</span><span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">فارسی</span></div>
-                                              <p class="text-slate-700 dark:text-emerald-200/80"><strong>آی‌پی‌های تمیز:</strong> آی‌پی‌های بدون فیلتر کلودفلر. این سیستم برای تک‌تک آی‌پی‌های ثبت شده در این بخش خروجی‌های مجزا می‌سازد تا اتصالی پایدار ارائه شود.<br><strong>آی‌پی‌های پروکسی:</strong> آی‌پی‌های ترانزیت پشت‌صحنه برای برقراری ارتباط با سایت‌های هدف فیلترشده.</p>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
                   </div>
               </div>
 
@@ -1837,10 +1662,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               <button onclick="switchTab('users')" id="mob-tab-users" class="mobile-tab-item mobile-nav-item flex flex-col items-center justify-center w-full h-full text-slate-400">
                   <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                   <span class="text-[10px] font-bold" data-i18n="tab_users">Clients</span>
-              </button>
-              <button onclick="switchTab('help')" id="mob-tab-help" class="mobile-tab-item mobile-nav-item flex flex-col items-center justify-center w-full h-full text-slate-400">
-                  <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                  <span class="text-[10px] font-bold" data-i18n="tab_help">Help</span>
               </button>
           </nav>
       </div>
@@ -2022,7 +1843,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           const i18n = {
               en: {
                   title: "Vortix Gateway", pass_ph: "Master Key", login_btn: "Authenticate", err_pass: "Access Denied", missing_db: "⚠️ IOT_DB namespace missing! Settings won't save.", system_online: "System online",
-                  logout: "Disconnect", tab_overview: "Dashboard", tab_info: "Endpoints", tab_status: "Metrics", tab_settings: "System", tab_adv: "Advanced", tab_logs: "Logs", tab_help: "Help & FAQ",
+                  logout: "Disconnect", tab_overview: "Dashboard", tab_info: "Endpoints", tab_status: "Metrics", tab_settings: "System", tab_adv: "Advanced", tab_logs: "Logs",
                   qr_title: "Direct Stream Link", badge_multi: "Dual-Core Multiplexed", copy: "Copy", copied: "Copied to clipboard!", sync_link: "Cloud Sync URL", active_id: "Hardware ID",
                   stat_ip: "Origin IP", stat_dc: "Edge Node", stat_loc: "Data Region",
                   lbl_proto: "Primary Display Mode", lbl_port: "Data Port", lbl_id: "Device UUID (Empty=Auto)",
@@ -2080,14 +1901,13 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                     format_obfuscated: "Obfuscated (UTF-8 + XOR)",
                      btn_redeploy_force: "Force Redeploy / Switch Format",
                     adv_network_dns: "Network & DNS", adv_proxy_relay: "Proxy & Relay", adv_subscription: "Subscription",
-                    adv_upstream_title: "Upstream VLESS", adv_upstream_badge: "Sing-Box / Clash",
-                    adv_upstream_desc1: "<strong>What does this do?</strong><br>It lets you use a free VLESS server (from sites like RaceVPN or SSHMax) so all your traffic goes through that server. Your exit IP becomes the server's IP.",
-                    adv_upstream_desc2: "<strong>Why is it useful?</strong><br>Sometimes you need an IP from a specific country (like Germany or USA) but don't want to buy a server. This lets you use that country's IP for free.",
-                    adv_upstream_desc3: "<strong>How to use?</strong><br>1. Get a VLESS link from one of the sites below<br>2. Paste it here<br>3. Click Save<br>4. Use the subscription link (Sing-Box or Clash format)",
-                    adv_upstream_label: "VLESS Server Link", adv_upstream_hint: "Copy a VLESS link from one of these sites and paste it here:",
-                    adv_upstream_providers: "Free VLESS Providers:", adv_upstream_warning: "Free configs usually expire after a few days. If the connection drops, get a new link and replace it. Also only works with Sing-Box and Clash formats.",
+                    adv_upstream_title: "Upstream VLESS",
+                    adv_upstream_desc1: "<strong>What does this do?</strong><br>It lets you use a free VLESS server so all your traffic goes through that server. Your exit IP becomes the server's IP.",
+                    adv_upstream_desc2: "<strong>Why is it useful?</strong><br>Sometimes you need an IP from a specific country but don't want to buy a server. This lets you use that country's IP for free.",
+                    adv_upstream_desc3: "<strong>How to use?</strong><br>1. Copy a VLESS link<br>2. Paste it here<br>3. Click Save",
+                    adv_upstream_label: "VLESS Server Link",
                     adv_routing_title: "Custom Routing", adv_routing_desc: "<strong>What does this do?</strong><br>Some sites or addresses you want to access directly without proxy. Add them here so their traffic goes through the normal path instead of the proxy.", adv_routing_label: "Custom Direct Routing", adv_routing_hint: "One domain, IP, geoip (e.g., geoip:ir) or geosite (e.g., geosite:ir) per line.", adv_routing_warning: "Wrong entries or bad formatting can break connections. Double check before saving.",
-                    adv_protocol: "Protocol", adv_telegram: "Telegram Bot", adv_cloudflare: "Cloudflare",
+                    adv_protocol: "Protocol", adv_telegram: "Telegram Bot", adv_cloudflare: "Update Settings",
                     stat_datetime: "Date Time",
                     desc_custom_panel_url: "Optionally specify a custom domain/URL to be used for subscription/sync links. If empty, the default Worker address will be used.",
                     lbl_custom_config_name: "Custom Config Name",
@@ -2123,7 +1943,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                },
               fa: {
                   title: "دروازه ورتیکس", pass_ph: "کلید اصلی", login_btn: "ورود به سیستم", err_pass: "دسترسی مسدود شد", missing_db: "⚠️ فضای پایگاه داده یافت نشد! تنظیمات ذخیره نمی‌شوند.", system_online: "سیستم فعال است",
-                  logout: "خروج", tab_overview: "نمای کلی", tab_info: "نودها", tab_status: "شبکه", tab_settings: "تنظیمات", tab_adv: "پیشرفته", tab_logs: "گزارش فعالیت", tab_help: "راهنما و سوالات",
+                  logout: "خروج", tab_overview: "نمای کلی", tab_info: "نودها", tab_status: "شبکه", tab_settings: "تنظیمات", tab_adv: "پیشرفته", tab_logs: "گزارش فعالیت",
                   qr_title: "لینک اتصال مستقیم", badge_multi: "ترکیب ترانزیت پیشرفته دوگانه", copy: "کپی", copied: "در حافظه کپی شد!", sync_link: "لینک ساب (همگام سازی ابری)", active_id: "شناسه سخت‌افزار",
                   stat_ip: "آی‌پی مبدا", stat_dc: "گره لبه", stat_loc: "منطقه داده",
                   lbl_proto: "پروتکل نمایش مستقیم", lbl_port: "پورت داده", lbl_id: "شناسه یکتا (خالی=خودکار)",
@@ -2153,14 +1973,13 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                     format_obfuscated: "مبهم‌سازی شده (UTF-8 + XOR)",
                     btn_redeploy_force: "تفویض مجدد / تغییر قالب پنل",
                     adv_network_dns: "شبکه و DNS", adv_proxy_relay: "پروکسی و رله", adv_subscription: "اشتراک",
-                    adv_upstream_title: "آپ‌استریم VLESS", adv_upstream_badge: "Sing-Box / Clash",
-                    adv_upstream_desc1: "<strong>این بخش چیکار میکنه؟</strong><br>یه سرور رایگان VLESS (مثلاً از سایت‌هایی مثل RaceVPN یا SSHMax) به پنل معرفی می‌کنی تا تمام ترافیکت از اون سوراخ رد بشه. یعنی IP خروجیت میشه IP اون سرور.",
-                    adv_upstream_desc2: "<strong>چرا لازمه؟</strong><br>بعضی وقتا به IP یه کشور خاص (مثلاً آلمان یا آمریکا) نیاز داری ولی نمی‌خوای سرور بخری. با این بخش می‌تونی رایگان از IP اون کشور استفاده کنی.",
-                    adv_upstream_desc3: "<strong>چطوری استفاده کنم؟</strong><br>۱. از یکی از سایت‌های زیر یه لینک VLESS بگیر<br>۲. لینک رو اینجا paste کن<br>۳. Save کن<br>۴. از لینک سابسکریپشن (فرمت Sing-Box یا Clash) استفاده کن",
-                    adv_upstream_label: "لینک سرور VLESS", adv_upstream_hint: "لینک VLESS رو از سایت‌های زیر کپی کن و اینجا بذار:",
-                    adv_upstream_providers: "سایت‌های دریافت لینک رایگان:", adv_upstream_warning: "کانفیگ‌های رایگان معمولاً چند روز بیشتر دوام ندارن. اگه اتصال قطع شد، لینک جدید بگیر و جایگزین کن. همچنین فقط با فرمت‌های Sing-Box و Clash کار می‌کنه.",
+                    adv_upstream_title: "آپ‌استریم VLESS",
+                    adv_upstream_desc1: "<strong>این بخش چیکار میکنه؟</strong><br>یه سرور رایگان VLESS به پنل معرفی می‌کنی تا تمام ترافیکت از اون سوراخ رد بشه. یعنی IP خروجیت میشه IP اون سرور.",
+                    adv_upstream_desc2: "<strong>چرا لازمه؟</strong><br>بعضی وقتا به IP یه کشور خاص نیاز داری ولی نمی‌خوای سرور بخری. با این بخش می‌تونی رایگان از IP اون کشور استفاده کنی.",
+                    adv_upstream_desc3: "<strong>چطوری استفاده کنم؟</strong><br>۱. لینک VLESS رو کپی کن<br>۲. لینک رو اینجا paste کن<br>۳. Save کن",
+                    adv_upstream_label: "لینک سرور VLESS",
                     adv_routing_title: "مسیریابی سفارشی", adv_routing_desc: "<strong>این بخش چیکار میکنه؟</strong><br>بعضی سایت‌ها یا آدرس‌ها رو می‌خوای بدون پروکسی باز کنی (مستقیم وصل بشی). اینجا آدرس‌ها رو بنویس تا ترافیکشون از مسیر عادی رد بشه.", adv_routing_label: "مسیریابی مستقیم سفارشی", adv_routing_hint: "هر خط یه آدرس، IP، geoip (مثلاً geoip:ir) یا geosite (مثلاً geosite:ir) باشه.", adv_routing_warning: "اگه آدرس اشتباه بنویسی یا فرمت درست نباشه، اتصال قطع میشه. قبل از ذخیره حتماً چک کن.",
-                    adv_protocol: "پروتکل", adv_telegram: "ربات تلگرام", adv_cloudflare: "کلودفلر",
+                    adv_protocol: "پروتکل", adv_telegram: "ربات تلگرام", adv_cloudflare: "تنظیمات به‌روزرسانی",
                     stat_datetime: "تاریخ و زمان",
                     desc_custom_panel_url: "اختیاری. یک دامنه/آدرس سفارشی برای لینک‌های ساب/همگام‌سازی وارد کنید. اگر خالی باشد، آدرس پیش‌فرض ورکر استفاده می‌شود.",
                     lbl_custom_config_name: "نام/پیشوند سفارشی کانفیگ",
@@ -2238,7 +2057,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   headline: { en: "Upstream VLESS, Redesigned User Management & Better UX", fa: "Upstream VLESS، بازطراحی مدیریت کاربران و تجربه کاربری بهتر" },
                   added: [
                       { en: "Upstream VLESS / Proxy Chaining — you can now chain your panel with another VLESS server to bypass restrictions", fa: "قابلیت Upstream VLESS / پروکسی زنجیره‌ای — حالا می‌تونی پنلت رو با یه سرور VLESS دیگه زنجیره کنی تا محدودیت‌ها دور زده بشه" },
-                      { en: "Upstream VLESS section with simple explanations and links to free config providers", fa: "بخش Upstream VLESS با توضیحات ساده و لینک سایت‌های دریافت کانفیگ رایگان" },
+                      { en: "Upstream VLESS section with simple explanations", fa: "بخش Upstream VLESS با توضیحات ساده" },
                       { en: "v2rayN JSON subscription format (?flag=vjson) added to subscription page", fa: "فرمت سابسکریپشن v2rayN JSON (?flag=vjson) به صفحه سابسکریپشن اضافه شد" },
                       { en: "Custom Routing section now has bilingual descriptions (Farsi + English)", fa: "بخش مسیریابی سفارشی حالا توضیحات دوزبانه داره (فارسی + انگلیسی)" },
                       { en: "Custom confirm modal instead of browser's default alert/confirm dialogs", fa: "مودال تأیید سفارشی به جای دیالوگ‌های پیش‌فرض مرورگر" },
@@ -2708,7 +2527,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           let dashboardInterval = null;
           let networkInterval = null;
           function switchTab(tab) {
-            ['overview','info','network','settings','advanced','logs','users','help'].forEach(t => {
+            ['overview','info','network','settings','advanced','logs','users'].forEach(t => {
                   const view = document.getElementById('view-'+t);
                   const deskBtn = document.getElementById('tab-'+t);
                   const mobBtn = document.getElementById('mob-tab-'+t);
@@ -2746,31 +2565,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                 networkInterval = setInterval(()=>doLogin(true), 15000);
             }
           }
-
-        function toggleFAQ(button) {
-            const content = button.nextElementSibling;
-            const svg = button.querySelector('svg');
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                svg.classList.add('rotate-180');
-            } else {
-                content.classList.add('hidden');
-                svg.classList.remove('rotate-180');
-            }
-        }
-
-        function filterFAQs() {
-            const query = document.getElementById('faq-search').value.toLowerCase();
-            const items = document.querySelectorAll('.faq-item');
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(query)) {
-                    item.classList.remove('hidden');
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
-        }
 
         async function loadLogs() {
             const container = document.getElementById('logs-container');
@@ -2934,7 +2728,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   if (document.getElementById('cfg-ech').checked) rawLink += "&pbk=enabled";
                   rawLink += "#" + hostName;
 
-                  // FIX: Check if elements exist
                   const linkEl = document.getElementById('link-direct');
                   if (linkEl) linkEl.value = rawLink;
 
