@@ -2,7 +2,7 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.0.1
+ * Version: 3.0.3
  * Advanced subscription and proxy management system
  */
 
@@ -2800,7 +2800,7 @@ const botI18n = {
         tg_uptime: "Uptime",
         tg_conns: "Active Connections",
         tg_version: "Version",
-        tg_cf_usage: "CF Usage",
+        tg_cf_usage: "Usage",
     },
     fa: {
         welcome: "🤖 **به ربات دروازه ورتیکس خوش آمدید**\nجهت مدیریت سیستم نظارتی خود یکی از گزینه‌های زیر را انتخاب نمایید:",
