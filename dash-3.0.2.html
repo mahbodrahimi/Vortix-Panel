@@ -452,7 +452,7 @@ html.dark select option {
                               <div class="native-press bg-[var(--color-surface)] rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm border border-slate-200 dark:border-darkborder">
                                   <div class="flex items-center justify-between mb-1 md:mb-2">
                                       <span class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="ov_total_users">Total Users</span>
-                                      <div class="p-1.5 md:p-2 bg-primary/10 text-primary rounded-md md:rounded-lg"><svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M12 4.354a4 4 0 110 5.292"></path></svg></div>
+                                      <div class="p-1.5 md:p-2 bg-primary/10 text-primary rounded-md md:rounded-lg"><svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-.126-1.283-.356-1.857M12 4.354a4 4 0 110 5.292"></path></svg></div>
                                   </div>
                                   <p id="ov-total-users" class="text-xl md:text-2xl font-black text-slate-800 dark:text-white">-</p>
                               </div>
@@ -1197,7 +1197,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                       </div>
                                       <div>
                                           <label class="block text-xs font-bold text-slate-500 mb-1" data-i18n="add_node_apikey">API Key</label>
-                                          <input type="password" id="add-node-apikey" placeholder="vortix_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
+                                          <input type="password" id="add-node-apikey" placeholder="nahan_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
                                           <button type="button" onclick="const n=document.getElementById('add-node-apikey');n.type=n.type==='password'?'text':'password'" class="absolute end-14 mt-[-36px] px-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">👁️</button>
                                       </div>
                                   </div>
@@ -1268,10 +1268,11 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                       </div>
                                       <div class="space-y-1">
                                           <label class="block text-sm font-bold text-slate-600 dark:text-slate-300" data-i18n="lbl_cf_worker">CF Worker Script Name</label>
-                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. vortix" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
+                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. nahan" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
                                           <p class="text-xs text-slate-400" data-i18n="desc_cf_worker">Required for in-panel updates. The script name shown in your Cloudflare Workers dashboard.</p>
                                       </div>
                                       <p class="text-xs text-slate-400" data-i18n="desc_cf_api">Optional: Monitor Worker free usage limits (100k/day). Needs Account Analytics Read permission.</p>
+                                      <!-- Beginner's Guide removed -->
                                   </div>
                               </div>
                           </div>
@@ -1797,6 +1798,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               tab_adv: "Advanced",
               tab_logs: "Logs",
               tab_users: "Clients",
+              // ----- Proxy Servers (NEW) -----
               proxy_servers_title: "Proxy Servers",
               source_proxy_servers: "Source Proxy Servers",
               dest_proxy_servers: "Destination Proxy Servers",
@@ -1814,6 +1816,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ip_copied: 'IPs copied to clipboard!',
               ip_loaded_to_clean: 'IPs loaded to Clean IPs field.',
               ip_loaded_to_relay: 'IPs loaded to Relay IPs field.',
+              // ----- End new -----
               qr_title: "Direct Stream Link",
               badge_multi: "Dual-Core Multiplexed",
               copy: "Copy",
@@ -1869,6 +1872,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               lbl_strategy: "Configuration Name Strategy",
               lbl_prefix: "Custom Name Prefix",
               html_desc_prefix_note: "This prefix is injected where the <code>{PREFIX}</code> tag is used.",
+              // ----- Overview -----
               ov_total_users: "Total Users",
               ov_active_users: "Active",
               ov_paused_users: "Paused",
@@ -1888,6 +1892,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ov_backup_config: "Backup Config",
               ov_refresh: "Refresh Statistics",
               ov_gb_unit: "GB",
+              // ----- Users -----
               stat_total_subscribers: "Total Subscribers",
               stat_active_paused: "Active/Paused",
               stat_cumulative_traffic: "Cumulative Traffic",
@@ -1900,6 +1905,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               user_search_placeholder: "🔍 Find by Name or UUID...",
               disabled_panel_title: "Recently Disabled Users",
               disabled_panel_desc: "Users automatically disabled due to quota or expiration limits",
+              // ----- Add/Edit User -----
               modal_add_title: "Add New User",
               lbl_u_name: "Name (Required)",
               lbl_custom_config_name: "Custom Config Name",
@@ -1927,19 +1933,24 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               desc_user_name: "Name shown in the user list",
               placeholder_name: "Name",
               desc_assigned_nodes: "Custom Nodes (comma/newline, empty = all nodes)",
+              // ----- Edit User -----
               edit_sub: "Edit Subscriber",
               lbl_name_ph: "Name (Required)",
               btn_save_changes: "Save Changes",
+              // ----- Common -----
               btn_cancel: "Cancel",
               save_btn_user: "Save User",
               save_btn: "Save Config",
+              // ----- API Keys -----
               lbl_api_keys: "Panel API Keys",
               desc_api_keys: "Generate API keys to securely connect remote panels.",
               btn_generate_key: "Generate Key",
               api_key_created: "API Key Created! Copy it now — it won't be shown again.",
+              // ----- Backup -----
               backup_restore_title: "Backup & Restore",
               export_btn: "📥 Export Configuration (JSON)",
               import_btn: "📤 Import Configuration (JSON)",
+              // ----- Other Nodes -----
               other_nodes_title: "Other Nodes",
               other_nodes_desc: "External nodes (URL + API Key) for cross-panel management.",
               add_node_title: "Add External Node",
@@ -1947,6 +1958,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               add_node_url: "Node URL",
               add_node_apikey: "API Key",
               add_node_confirm: "Add Node",
+              // ----- Advanced -----
               adv_network_dns: "Network & DNS",
               adv_proxy_relay: "Proxy & Relay",
               adv_subscription: "Subscription",
@@ -1965,6 +1977,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               adv_cloudflare: "Update Settings",
               lbl_tfo: "TCP Fast Open",
               lbl_ech: "Secure Hello (ECH)",
+              // ----- Metrics -----
               metrics_live: "Live Profile Usage",
               no_metrics: "No active connection data yet.",
               ping_test_title: "Latency Diagnostics",
@@ -1974,6 +1987,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               response: "Response",
               status: "Status",
               local_port: "Local Port",
+              // ----- Update -----
               update_avail: "New version available!",
               deploy_btn: "Deploy Now",
               view_github: "View on GitHub",
@@ -1998,6 +2012,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               tab_adv: "پیشرفته",
               tab_logs: "گزارش فعالیت",
               tab_users: "کاربران",
+              // ----- Proxy Servers (NEW) -----
               proxy_servers_title: "سرورهای واسطه",
               source_proxy_servers: "سرورهای واسطه مبدا",
               dest_proxy_servers: "سرورهای واسطه مقصد",
@@ -2015,6 +2030,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ip_copied: 'آی‌پی‌ها در حافظه کپی شدند!',
               ip_loaded_to_clean: 'آی‌پی‌ها به بخش آی‌پی تمیز انتقال یافتند.',
               ip_loaded_to_relay: 'آی‌پی‌ها به بخش آی‌پی پروکسی انتقال یافتند.',
+              // ----- End new -----
               qr_title: "لینک اتصال مستقیم",
               badge_multi: "ترکیب ترانزیت پیشرفته دوگانه",
               copy: "کپی",
@@ -2070,6 +2086,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               lbl_strategy: "روش نام‌گذاری کانفیگ‌ها",
               lbl_prefix: "پیشوند نام کانفیگ‌ها",
               html_desc_prefix_note: "این پیشوند در هر جایی از طرح نام‌گذاری که متغیر <code>{PREFIX}</code> قرار داشته باشد جایگزین می‌شود.",
+              // ----- Overview -----
               ov_total_users: "کل کاربران",
               ov_active_users: "فعال",
               ov_paused_users: "متوقف",
@@ -2089,6 +2106,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ov_backup_config: "پشتیبان‌گیری",
               ov_refresh: "بروزرسانی آمار",
               ov_gb_unit: "گیگابایت",
+              // ----- Users -----
               stat_total_subscribers: "کل مشترکین",
               stat_active_paused: "فعال / متوقف شده",
               stat_cumulative_traffic: "ترافیک کل انباشته",
@@ -2101,6 +2119,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               user_search_placeholder: "🔍 جستجو بر اساس نام یا شناسه...",
               disabled_panel_title: "کاربران اخیراً غیرفعال شده",
               disabled_panel_desc: "کاربرانی که به دلیل اتمام سهمیه یا تاریخ انقضا غیرفعال شده‌اند",
+              // ----- Add/Edit User -----
               modal_add_title: "افزودن کاربر جدید",
               lbl_u_name: "نام کاربر",
               lbl_custom_config_name: "نام سفارشی کانفیگ",
@@ -2128,19 +2147,24 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               desc_user_name: "نامی که در لیست کاربران نمایش داده میشه",
               placeholder_name: "نام",
               desc_assigned_nodes: "نودهای سفارشی (کاما/خط جدید، خالی = همه نودها)",
+              // ----- Edit User -----
               edit_sub: "ویرایش کاربر",
               lbl_name_ph: "نام کاربر",
               btn_save_changes: "ذخیره تغییرات",
+              // ----- Common -----
               btn_cancel: "انصراف",
               save_btn_user: "ذخیره کاربر",
               save_btn: "ذخیره تنظیمات",
+              // ----- API Keys -----
               lbl_api_keys: "کلیدهای API پنل",
               desc_api_keys: "کلیدهای API برای اتصال امن پنل‌های راهدور ایجاد کنید.",
               btn_generate_key: "ایجاد کلید",
               api_key_created: "کلید API ایجاد شد! آن را کپی کنید — دوباره نمایش داده نخواهد شد.",
+              // ----- Backup -----
               backup_restore_title: "پشتیبان‌گیری و بازیابی",
               export_btn: "📥 برون‌بری فایل پیکربندی (نسخه پشتیبان)",
               import_btn: "📤 درون‌ریزی فایل پیکربندی (نسخه پشتیبان)",
+              // ----- Other Nodes -----
               other_nodes_title: "سایر نودها",
               other_nodes_desc: "نودهای خارجی (URL + کلید API) برای مدیریت بین پنل‌ها.",
               add_node_title: "افزودن نود خارجی",
@@ -2148,6 +2172,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               add_node_url: "آدرس نود",
               add_node_apikey: "کلید API",
               add_node_confirm: "افزودن نود",
+              // ----- Advanced -----
               adv_network_dns: "شبکه و DNS",
               adv_proxy_relay: "پروکسی و رله",
               adv_subscription: "اشتراک",
@@ -2166,6 +2191,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               adv_cloudflare: "تنظیمات به‌روزرسانی",
               lbl_tfo: "اتصال سریع",
               lbl_ech: "سلام امن",
+              // ----- Metrics -----
               metrics_live: "وضعیت زنده مصرف اتصالات و پردازش",
               no_metrics: "هنوز داده‌ای از تراکنش و اتصالات فعال ثبت نشده است.",
               ping_test_title: "عیب‌یابی تاخیر شبکه",
@@ -2175,6 +2201,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               response: "مدت زمان تاخیر پاسخگویی",
               status: "وضعیت گره",
               local_port: "درگاه محلی",
+              // ----- Update -----
               update_avail: "بروزرسانی جدید در دسترس است!",
               deploy_btn: "هم‌اکنون نصب کن",
               view_github: "مشاهده در گیت‌هاب",
@@ -2190,6 +2217,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       let sessionKey = "", baseRoute = window.location.pathname.split('/dash')[0];
       let hostName = window.location.hostname, localUUID = "";
 
+      // Apply language
       function applyLang() {
           document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
           document.documentElement.lang = lang;
@@ -2228,6 +2256,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       }
       applyLang();
 
+      // Theme
       if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
       }
@@ -2243,9 +2272,10 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       }
 
       // ===============================================================
-      // PROXY SERVER FUNCTIONS
+      // PROXY SERVER FUNCTIONS (NEW)
       // ===============================================================
 
+      // Source Proxy Servers - fetch from clean-ip.txt
       async function loadSourceProxyServers() {
           const countInput = document.getElementById('source-proxy-count');
           const display = document.getElementById('source-proxy-ips-display');
@@ -2265,13 +2295,19 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               if (!response.ok) throw new Error('HTTP ' + response.status);
               const text = await response.text();
 
-              const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('#'));
+              const lines = text.split('\n')
+                  .map(line => line.trim())
+                  .filter(line => line.length > 0 && !line.startsWith('#'));
 
-              if (lines.length === 0) throw new Error('No IPs found in repository');
+              if (lines.length === 0) {
+                  throw new Error('No IPs found in repository');
+              }
 
+              // Shuffle and pick random IPs
               const shuffled = lines.sort(() => Math.random() - 0.5);
               const selected = shuffled.slice(0, count);
 
+              // Display results
               display.innerHTML = selected.map((ip, idx) =>
                   `<div class="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/50 last:border-0">
                       <span class="font-mono">${ip}</span>
@@ -2279,7 +2315,9 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   </div>`
               ).join('');
 
+              // Store for copy
               window._sourceProxyIPs = selected;
+
               badge.textContent = selected.length + ' IPs';
               status.textContent = '✅ ' + (i18n[lang]?.ip_loaded || 'IPs loaded successfully.');
               status.className = 'text-[10px] mt-2 text-emerald-500';
@@ -2293,6 +2331,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
+      // Destination Proxy Servers - fetch from proxy.txt
       async function loadDestinationProxyServers() {
           const countInput = document.getElementById('dest-proxy-count');
           const display = document.getElementById('dest-proxy-ips-display');
@@ -2312,9 +2351,13 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               if (!response.ok) throw new Error('HTTP ' + response.status);
               const text = await response.text();
 
-              const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('#'));
+              const lines = text.split('\n')
+                  .map(line => line.trim())
+                  .filter(line => line.length > 0 && !line.startsWith('#'));
 
-              if (lines.length === 0) throw new Error('No IPs found in repository');
+              if (lines.length === 0) {
+                  throw new Error('No IPs found in repository');
+              }
 
               const shuffled = lines.sort(() => Math.random() - 0.5);
               const selected = shuffled.slice(0, count);
@@ -2327,6 +2370,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ).join('');
 
               window._destProxyIPs = selected;
+
               badge.textContent = selected.length + ' IPs';
               status.textContent = '✅ ' + (i18n[lang]?.ip_loaded || 'IPs loaded successfully.');
               status.className = 'text-[10px] mt-2 text-emerald-500';
@@ -2340,26 +2384,31 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
+      // Copy Source IPs
       function copySourceProxyIPs() {
           const ips = window._sourceProxyIPs || [];
           if (ips.length === 0) {
               showToast(lang === 'fa' ? 'ابتدا آی‌پی‌ها را بارگذاری کنید' : 'Load IPs first', 'error');
               return;
           }
-          navigator.clipboard.writeText(ips.join('\n'));
+          const text = ips.join('\n');
+          navigator.clipboard.writeText(text);
           showToast(i18n[lang]?.ip_copied || 'IPs copied!', 'success');
       }
 
+      // Copy Destination IPs
       function copyDestinationProxyIPs() {
           const ips = window._destProxyIPs || [];
           if (ips.length === 0) {
               showToast(lang === 'fa' ? 'ابتدا آی‌پی‌ها را بارگذاری کنید' : 'Load IPs first', 'error');
               return;
           }
-          navigator.clipboard.writeText(ips.join('\n'));
+          const text = ips.join('\n');
+          navigator.clipboard.writeText(text);
           showToast(i18n[lang]?.ip_copied || 'IPs copied!', 'success');
       }
 
+      // Load Source IPs to Clean IPs textarea
       function loadSourceToCleanIPs() {
           const ips = window._sourceProxyIPs || [];
           if (ips.length === 0) {
@@ -2368,6 +2417,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
           const textarea = document.getElementById('cfg-ips');
           if (!textarea) return;
+          // Append to existing text
           let current = textarea.value;
           if (current && !current.endsWith('\n')) current += '\n';
           textarea.value = current + ips.join('\n');
@@ -2376,6 +2426,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           showToast(i18n[lang]?.ip_loaded_to_clean || 'Loaded to Clean IPs!', 'success');
       }
 
+      // Load Destination IPs to Relay textarea
       function loadDestinationToRelay() {
           const ips = window._destProxyIPs || [];
           if (ips.length === 0) {
@@ -2416,6 +2467,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   document.getElementById('net-colo').textContent = data.network.colo;
                   document.getElementById('net-loc').textContent = data.network.loc;
                   const conf = data.config;
+                  // Load config into fields
                   document.getElementById('cfg-proto').value = conf.mode || 'alpha';
                   let pList = (conf.socketPorts || '443').split(',');
                   Array.from(document.getElementById('cfg-port').options).forEach(o => o.selected = pList.includes(o.value));
@@ -2463,6 +2515,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
+      // Placeholder functions for existing features
       function switchTab(tab) { /* existing logic */ }
       function updateUI() { /* existing logic */ }
       function renderUsersTable() { /* existing logic */ }
@@ -2511,6 +2564,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       function copyToClipboard(text) { /* existing logic */ }
       function showQR(name, url) { /* existing logic */ }
 
+      // Initialize
       document.addEventListener('DOMContentLoaded', () => {
           const savedVariant = localStorage.getItem('theme_variant') || 'system';
           document.documentElement.setAttribute('data-theme', savedVariant);
@@ -2530,6 +2584,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               } catch(e) {}
           }
 
+          // Strategy suggestions
           const strategyInput = document.getElementById('cfg-name-strategy');
           const suggestionsBox = document.getElementById('cfg-strategy-suggestions');
           if (strategyInput && suggestionsBox) {
@@ -2553,9 +2608,11 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               });
           }
 
+          // DateTime
           updatePersianDateTime();
           setInterval(updatePersianDateTime, 1000);
 
+          // Proxy server count inputs - validate min/max
           ['source-proxy-count', 'dest-proxy-count'].forEach(id => {
               const el = document.getElementById(id);
               if (el) {
