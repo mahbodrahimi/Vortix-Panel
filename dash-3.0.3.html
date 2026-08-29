@@ -338,6 +338,95 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+
+        .update-banner-simple {
+            background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 12%, transparent), color-mix(in srgb, var(--color-primary) 5%, transparent));
+            border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .update-banner-simple.visible {
+            display: flex;
+        }
+        .update-banner-simple .info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .update-banner-simple .info .icon {
+            font-size: 1.5rem;
+        }
+        .update-banner-simple .info .text {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--color-text);
+        }
+        .update-banner-simple .info .sub {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+        .update-banner-simple .actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .update-banner-simple .actions button {
+            padding: 0.5rem 1.2rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .update-banner-simple .actions .btn-check {
+            background: var(--color-bg-alt);
+            color: var(--color-text);
+        }
+        .update-banner-simple .actions .btn-check:hover {
+            background: var(--color-border);
+        }
+        .update-banner-simple .actions .btn-update {
+            background: var(--color-primary);
+            color: #fff;
+        }
+        .update-banner-simple .actions .btn-update:hover {
+            opacity: 0.85;
+            transform: scale(1.02);
+        }
+        .update-banner-simple .actions .btn-update:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .update-banner-simple .status-text {
+            width: 100%;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .update-banner-simple .status-text.success {
+            background: color-mix(in srgb, #22c55e 15%, transparent);
+            color: #22c55e;
+        }
+        .update-banner-simple .status-text.error {
+            background: color-mix(in srgb, #ef4444 15%, transparent);
+            color: #ef4444;
+        }
+        .update-banner-simple .status-text.loading {
+            background: color-mix(in srgb, #f59e0b 15%, transparent);
+            color: #f59e0b;
+        }
+        .update-banner-simple .status-text.hidden {
+            display: none;
+        }
     </style>
 </head>
 
@@ -367,8 +456,8 @@
             <div class="text-center mb-8">
                 <div class="relative inline-flex items-center justify-center mb-5">
                     <div class="lock-pulse relative w-20 h-20 rounded-3xl flex items-center justify-center" style="background: linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 25%, transparent), color-mix(in srgb, var(--color-primary) 8%, transparent)); border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); box-shadow: 0 0 40px color-mix(in srgb, var(--color-primary) 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.08);">
-    <img src="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" class="w-11 h-11 rounded-xl" alt="Vortix">
-</div>
+                        <img src="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" class="w-11 h-11 rounded-xl" alt="Vortix">
+                    </div>
                 </div>
                 <h2 class="text-3xl font-black flex items-center justify-center gap-1" style="color: var(--color-text);" data-i18n="title">Vortix <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></h2>
                 <p class="text-sm mt-2" style="color: var(--color-text-muted);" data-i18n="login_subtitle">ورود به دروازه ورتیکس</p>
@@ -463,52 +552,20 @@
             <div class="scroll-content flex-1 overflow-y-auto p-4 md:p-10">
                 <div class="max-w-4xl mx-auto space-y-6 fade-in">
 
-                    <!-- Update Banner -->
-                    <div id="update-alert-banner" class="hidden bg-gradient-to-r from-amber-500/10 to-primary/10 border-2 border-amber-300 dark:border-amber-950/20 rounded-3xl p-6 shadow-md flex-col items-center justify-between gap-4 fade-in">
-                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-                            <div class="flex items-center space-x-4 space-x-reverse text-start w-full">
-                                <div class="p-3 bg-amber-500/10 text-amber-500 rounded-2xl shrink-0">
-                                    <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/></svg>
-                                </div>
-                                <div>
-                                    <h4 class="font-black text-amber-800 dark:text-amber-400 text-base" data-i18n="update_avail">نسخه جدید موجود است!</h4>
-                                    <p id="update-alert-text" class="text-xs text-slate-500 dark:text-slate-400 mt-1"></p>
-                                </div>
-                            </div>
-                            <div class="flex gap-2 w-full sm:w-auto shrink-0 justify-end">
-                                <button onclick="dismissUpdate()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-colors" data-i18n="btn_cancel">انصراف</button>
-                                <button onclick="doUpdate()" id="update-deploy-btn" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5" data-i18n="deploy_btn">🚀 نصب کن</button>
+                    <!-- Update Banner - Simplified -->
+                    <div id="update-banner-simple" class="update-banner-simple">
+                        <div class="info">
+                            <span class="icon">🔄</span>
+                            <div>
+                                <div class="text" data-i18n="update_check_title">بررسی به‌روزرسانی</div>
+                                <div class="sub" id="update-banner-sub">برای بررسی نسخه جدید کلیک کنید</div>
                             </div>
                         </div>
-                        <div class="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-amber-500/5 dark:bg-amber-500/[0.02] p-4 rounded-2xl border border-amber-500/10 mt-2 text-start">
-                            <div class="space-y-1">
-                                <span class="text-xs font-bold text-amber-800 dark:text-amber-400" data-i18n="lbl_update_format">قالب بروزرسانی:</span>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="desc_update_format">کد معمولی یا مبهم‌سازی شده با XOR</p>
-                            </div>
-                            <div class="flex items-center gap-4 shrink-0 font-medium">
-                                <label class="inline-flex items-center cursor-pointer">
-                                    <input type="radio" name="update-format" value="normal" checked class="form-radio text-amber-500 w-4 h-4">
-                                    <span class="ms-1.5 text-xs text-slate-700 dark:text-slate-300 font-bold" data-i18n="format_normal">معمولی</span>
-                                </label>
-                                <label class="inline-flex items-center cursor-pointer">
-                                    <input type="radio" name="update-format" value="obfuscated" class="form-radio text-amber-500 w-4 h-4">
-                                    <span class="ms-1.5 text-xs text-slate-700 dark:text-slate-300 font-bold" data-i18n="format_obfuscated_label">مبهم‌سازی</span>
-                                </label>
-                            </div>
+                        <div class="actions">
+                            <button class="btn-check" onclick="checkForUpdate()" id="btn-check-update" data-i18n="btn_check_update">بررسی</button>
+                            <button class="btn-update" onclick="deployUpdate()" id="btn-deploy-update" disabled data-i18n="btn_deploy_update">بروزرسانی</button>
                         </div>
-                        <div id="update-changelog-area" class="hidden w-full border-t border-amber-300/30 dark:border-amber-950/20 pt-4 mt-2">
-                            <h5 class="text-xs font-bold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span data-i18n="changelog_title">تغییرات نسخه جدید:</span>
-                            </h5>
-                            <div id="update-changelog-content" class="text-xs text-slate-600 dark:text-slate-400 bg-amber-500/[0.04] dark:bg-slate-900/40 p-4 rounded-2xl max-h-48 overflow-y-auto font-sans leading-relaxed border border-amber-200/20 max-w-none text-start">
-                                <p class="animate-pulse">در حال دریافت تغییرات...</p>
-                            </div>
-                        </div>
-                        <div id="update-deploy-status" class="hidden w-full mt-3 p-3 rounded-xl text-sm font-bold text-center"></div>
-                        <div class="w-full mt-2 text-center">
-                            <a id="update-github-link" href="https://github.com/Vortix/Vortix-Panel" target="_blank" class="text-xs text-slate-400 hover:text-amber-500 transition-colors underline" data-i18n="view_github">مشاهده در گیت‌هاب</a>
-                        </div>
+                        <div id="update-status-text" class="status-text hidden"></div>
                     </div>
 
                     <!-- OVERVIEW / DASHBOARD VIEW -->
@@ -852,25 +909,6 @@
                                         <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-[var(--color-surface)] after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500"></div>
                                     </div>
                                 </label>
-                                <div id="auto-update-format-wrap" class="hidden">
-                                    <label class="block text-xs font-bold text-slate-500 mb-2" data-i18n="lbl_auto_update_format">قالب بروزرسانی</label>
-                                    <div class="flex gap-3">
-                                        <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
-                                            <input type="radio" name="auto-update-format" value="normal" checked class="accent-emerald-500">
-                                            <div>
-                                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_normal_label">معمولی</span>
-                                                <p class="text-[10px] text-slate-400" data-i18n="desc_format_normal">استاندارد _worker.js</p>
-                                            </div>
-                                        </label>
-                                        <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
-                                            <input type="radio" name="auto-update-format" value="obfuscated" class="accent-emerald-500">
-                                            <div>
-                                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_obfuscated_label">مبهم‌سازی</span>
-                                                <p class="text-[10px] text-slate-400" data-i18n="desc_format_obfuscated">جابجایی بایت XOR</p>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             <div class="bg-[var(--color-surface)]/70 backdrop-blur-xl rounded-3xl p-6 shadow-lg border border-white/20 dark:border-white/10 md:col-span-2 space-y-4">
@@ -1812,45 +1850,15 @@
         </div>
     </div>
 
-    <!-- Modal: Version Update -->
-    <div id="modal-version-update" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[101] hidden items-center justify-center p-4">
-        <div class="bg-[var(--color-surface)] rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-darkborder relative overflow-hidden transform transition-all duration-300">
-            <div class="absolute top-0 right-0 left-0 h-2 bg-gradient-to-r from-indigo-500 via-primary to-emerald-500"></div>
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-2.5">
-                    <div class="bg-primary/10 text-primary p-2.5 rounded-2xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-black text-slate-800 dark:text-white" data-i18n="v_pop_title">بروزرسانی نسخه</h3>
-                        <span id="modal-version-badge" class="text-[10px] font-bold px-2 py-0.5 bg-indigo-500 text-white rounded-full tracking-wide"></span>
-                    </div>
-                </div>
-                <button onclick="closeVersionModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-darkborder transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="space-y-4">
-                <div class="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-darkborder/50">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest" data-i18n="v_pop_whatsnew">تغییرات این نسخه</p>
-                    <h4 id="modal-version-headline" class="text-sm font-black text-slate-700 dark:text-white mt-1"></h4>
-                </div>
-                <div id="modal-changelog-container" class="space-y-4 max-h-[50vh] overflow-y-auto pe-2 text-start"></div>
-            </div>
-            <div class="mt-6 pt-5 border-t border-slate-100 dark:border-darkborder/50 flex justify-end">
-                <button onclick="closeVersionModal()" class="px-5 py-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-bold shadow-md transition-all transform hover:scale-105 active:scale-95" data-i18n="v_pop_btn">متوجه شدم!</button>
-            </div>
-        </div>
-    </div>
-
     <!-- ============================================= -->
-    <!-- JAVASCRIPT - کامل و بدون حذف                  -->
+    <!-- JAVASCRIPT - Simplified Update System         -->
     <!-- ============================================= -->
     <script>
         // =============================================
         // CONFIGURATION
         // =============================================
         const CURRENT_VERSION = "__CURRENT_VERSION__";
+        const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
         // =============================================
         // I18N DICTIONARIES
@@ -2117,6 +2125,12 @@
                 lbl_strategy: "Configuration Name Strategy",
                 lbl_user_panel_url: "Main Panel URL",
                 desc_user_panel_url: "Main panel domain for custom nodes. If empty, default panel URL is used.",
+                update_check_title: "Check for Updates",
+                btn_check_update: "Check",
+                btn_deploy_update: "Update",
+                update_checking: "Checking for updates...",
+                update_available: "New version available: {version}",
+                update_up_to_date: "You are running the latest version",
             },
             fa: {
                 title: "دروازه ورتیکس",
@@ -2390,32 +2404,27 @@
                 source_proxy_placeholder: "برای دریافت IP های تصادفی از مخزن، روی دکمه کلیک کنید.",
                 dest_proxy_placeholder: "برای دریافت IP های تصادفی از مخزن، روی دکمه کلیک کنید.",
                 login_subtitle: "ورود به دروازه ورتیکس",
-            }
-        };
-
-        // =============================================
-        // CHANGELOG DATA
-        // =============================================
-        const CHANGELOG_DATA = {
-            "3.0.0": {
-                headline: { en: "Upstream VLESS, Redesigned User Management & Better UX", fa: "Upstream VLESS، بازطراحی مدیریت کاربران و تجربه کاربری بهتر" },
-                added: [
-                    { en: "Upstream VLESS / Proxy Chaining", fa: "قابلیت Upstream VLESS / پروکسی زنجیره‌ای" },
-                    { en: "v2rayN JSON subscription format", fa: "فرمت سابسکریپشن v2rayN JSON" },
-                    { en: "Custom Routing section with bilingual descriptions", fa: "بخش مسیریابی سفارشی با توضیحات دوزبانه" }
-                ],
-                fixed: [
-                    { en: "Language switching updates all text instantly", fa: "تغییر زبان همه متن‌ها را فوری آپدیت می‌کند" },
-                    { en: "RTL layout issues fixed", fa: "رفع مشکلات لایوت RTL" }
-                ],
-                improved: [
-                    { en: "Redesigned Add/Edit User forms", fa: "بازطراحی فرم‌های اضافه/ویرایش کاربر" },
-                    { en: "Modern toggle switches for protocol selection", fa: "سوئیچ‌های مدرن برای انتخاب پروتکل" }
-                ],
-                changed: [
-                    { en: "Version upgraded from 2.9.4 to 3.0.0", fa: "ارتقای ورژن از ۲.۹.۴ به ۳.۰.۰" }
-                ],
-                notes: []
+                metrics_live: "وضعیت زنده مصرف اتصالات و پردازش",
+                no_metrics: "هنوز داده‌ای از تراکنش و اتصالات فعال ثبت نشده است.",
+                run_diagnostics: "⚡ اجرای عیب‌یابی شبکه",
+                target_node: "هدف گره شبکه",
+                response: "مدت زمان تاخیر پاسخگویی",
+                status: "وضعیت گره",
+                local_port: "درگاه محلی",
+                lbl_doh: "تحلیل‌گر تخصصی آدرس‌یابی عددی",
+                lbl_strategy: "روش نام‌گذاری کانفیگ‌ها",
+                lbl_prefix: "پیشوند نام کانفیگ‌ها",
+                html_desc_prefix_note: "این پیشوند در هر جایی از طرح نام‌گذاری که متغیر <code class='bg-slate-100 dark:bg-slate-800/80 px-1 py-0.5 rounded text-rose-500 font-mono'>{PREFIX}</code> قرار داشته باشد جایگزین می‌شود.",
+                update_check_title: "بررسی به‌روزرسانی",
+                btn_check_update: "بررسی",
+                btn_deploy_update: "بروزرسانی",
+                update_checking: "در حال بررسی به‌روزرسانی...",
+                update_available: "نسخه جدید موجود است: {version}",
+                update_up_to_date: "شما از آخرین نسخه استفاده می‌کنید",
+                update_deploying: "در حال نصب بروزرسانی...",
+                update_success: "بروزرسانی موفق! در حال بارگذاری مجدد...",
+                update_error: "خطا در بروزرسانی: {error}",
+                update_no_creds: "لطفاً شناسه اکانت، توکن API و نام Worker را در تنظیمات → تنظیمات بروزرسانی وارد کنید.",
             }
         };
 
@@ -2432,6 +2441,7 @@
         let _confirmResolve = null;
         let _sourceProxyIPs = [];
         let _destProxyIPs = [];
+        let _updateData = null;
 
         // =============================================
         // INITIALIZATION
@@ -2449,7 +2459,6 @@
                     }
                 } catch(e){}
             }
-            checkVersionPopup();
         });
 
         // =============================================
@@ -2537,82 +2546,117 @@
         applyLang();
 
         // =============================================
-        // VERSION POPUP
+        // UPDATE SYSTEM - Simplified
         // =============================================
-        function checkVersionPopup() {
-            const popupKey = `vortix_shown_v__CURRENT_VERSION__`;
-            if (!localStorage.getItem(popupKey)) {
-                setTimeout(() => {
-                    const badge = document.getElementById('modal-version-badge');
-                    if (badge) badge.textContent = 'v' + CURRENT_VERSION;
-                    renderChangelog(CURRENT_VERSION);
-                    const m = document.getElementById('modal-version-update');
-                    if (m) {
-                        m.classList.remove('hidden');
-                        m.classList.add('flex');
+        async function checkForUpdate() {
+            const banner = document.getElementById('update-banner-simple');
+            const statusText = document.getElementById('update-status-text');
+            const btnCheck = document.getElementById('btn-check-update');
+            const btnDeploy = document.getElementById('btn-deploy-update');
+            const subText = document.getElementById('update-banner-sub');
+
+            if (!banner) return;
+
+            banner.classList.add('visible');
+            statusText.classList.remove('hidden', 'success', 'error', 'loading');
+            statusText.textContent = i18n[lang]?.update_checking || 'Checking for updates...';
+            statusText.className = 'status-text loading';
+            btnCheck.disabled = true;
+
+            try {
+                const versionRes = await fetch(baseRoute + '/api/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: sessionKey, action: 'check' })
+                });
+                const versionData = await versionRes.json();
+
+                if (versionData.success) {
+                    if (versionData.updateAvailable) {
+                        _updateData = versionData;
+                        statusText.textContent = (i18n[lang]?.update_available || 'New version available: {version}').replace('{version}', versionData.latest);
+                        statusText.className = 'status-text success';
+                        btnDeploy.disabled = false;
+                        subText.textContent = 'v' + versionData.current + ' → v' + versionData.latest;
+                    } else {
+                        statusText.textContent = i18n[lang]?.update_up_to_date || 'You are running the latest version';
+                        statusText.className = 'status-text success';
+                        btnDeploy.disabled = true;
+                        subText.textContent = 'v' + versionData.current;
                     }
-                }, 800);
+                } else {
+                    statusText.textContent = versionData.error || 'Failed to check version';
+                    statusText.className = 'status-text error';
+                    btnDeploy.disabled = true;
+                }
+            } catch (err) {
+                statusText.textContent = (i18n[lang]?.update_error || 'Update failed: {error}').replace('{error}', err.message);
+                statusText.className = 'status-text error';
+                btnDeploy.disabled = true;
             }
+
+            btnCheck.disabled = false;
         }
 
-        function closeVersionModal() {
-            const m = document.getElementById('modal-version-update');
-            if (m) {
-                m.classList.add('hidden');
-                m.classList.remove('flex');
-            }
-            const popupKey = `vortix_shown_v__CURRENT_VERSION__`;
-            localStorage.setItem(popupKey, 'true');
-        }
+        async function deployUpdate() {
+            const statusText = document.getElementById('update-status-text');
+            const btnCheck = document.getElementById('btn-check-update');
+            const btnDeploy = document.getElementById('btn-deploy-update');
+            const subText = document.getElementById('update-banner-sub');
 
-        // =============================================
-        // CHANGELOG RENDERER
-        // =============================================
-        function renderChangelog(version) {
-            const container = document.getElementById('modal-changelog-container');
-            if (!container) return;
+            if (!btnDeploy || btnDeploy.disabled) return;
 
-            const data = CHANGELOG_DATA[version];
-            if (!data) {
-                container.innerHTML = '<p class="text-slate-400 text-xs">' + (i18n[lang]?.no_changelog || 'No changelog available for this version.') + '</p>';
+            const cfAccountId = document.getElementById('cfg-cf-acc')?.value || '';
+            const cfApiToken = document.getElementById('cfg-cf-token')?.value || '';
+            const cfWorkerName = document.getElementById('cfg-cf-worker')?.value || '';
+
+            if (!cfAccountId || !cfApiToken || !cfWorkerName) {
+                statusText.textContent = i18n[lang]?.update_no_creds || 'Please configure CF Account ID, API Token, and Worker Name in Settings → Update Settings';
+                statusText.className = 'status-text error';
+                statusText.classList.remove('hidden');
                 return;
             }
 
-            const t = (key) => i18n[lang]?.[key] || i18n['en']?.[key] || key;
-            let html = '';
+            if (!(await showConfirm(
+                lang === 'fa' ? 'نصب بروزرسانی' : 'Deploy Update',
+                lang === 'fa' ? 'آیا از نصب بروزرسانی جدید اطمینان دارید؟' : 'Are you sure you want to deploy the update?'
+            ))) return;
 
-            if (data.headline) {
-                const headlineEl = document.getElementById('modal-version-headline');
-                if (headlineEl) headlineEl.textContent = data.headline[lang] || data.headline['en'];
+            statusText.textContent = i18n[lang]?.update_deploying || 'Deploying update...';
+            statusText.className = 'status-text loading';
+            statusText.classList.remove('hidden');
+            btnDeploy.disabled = true;
+            btnCheck.disabled = true;
+
+            try {
+                const deployRes = await fetch(baseRoute + '/api/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        key: sessionKey,
+                        action: 'deploy',
+                        code: null
+                    })
+                });
+                const deployData = await deployRes.json();
+
+                if (deployData.success) {
+                    statusText.textContent = (i18n[lang]?.update_success || 'Update successful! Reloading...') + ' v' + deployData.newVersion;
+                    statusText.className = 'status-text success';
+                    subText.textContent = '✅ ' + (lang === 'fa' ? 'بروزرسانی شد!' : 'Updated!');
+                    setTimeout(() => window.location.reload(), 3000);
+                } else {
+                    statusText.textContent = (i18n[lang]?.update_error || 'Update failed: {error}').replace('{error}', deployData.error || 'Unknown error');
+                    statusText.className = 'status-text error';
+                    btnDeploy.disabled = false;
+                }
+            } catch (err) {
+                statusText.textContent = (i18n[lang]?.update_error || 'Update failed: {error}').replace('{error}', err.message);
+                statusText.className = 'status-text error';
+                btnDeploy.disabled = false;
             }
 
-            const sections = [
-                { key: 'added', icon: '✨', color: 'emerald', items: data.added },
-                { key: 'fixed', icon: '🔧', color: 'blue', items: data.fixed },
-                { key: 'improved', icon: '⚡', color: 'violet', items: data.improved },
-                { key: 'changed', icon: '🔄', color: 'amber', items: data.changed },
-                { key: 'note', icon: '⚠️', color: 'red', items: data.notes },
-            ];
-
-            sections.forEach(section => {
-                if (section.items && section.items.length > 0) {
-                    html += '<div class="mb-4">';
-                    html += '<div class="flex items-center gap-2 mb-2">';
-                    html += '<span class="text-sm">' + section.icon + '</span>';
-                    html += '<h5 class="text-xs font-bold text-' + section.color + '-600 dark:text-' + section.color + '-400 uppercase tracking-wider">' + t('changelog_' + section.key) + '</h5>';
-                    html += '</div>';
-                    html += '<div class="space-y-1.5 ps-6">';
-                    section.items.forEach(item => {
-                        html += '<div class="flex items-start gap-2">';
-                        html += '<span class="text-' + section.color + '-400 mt-1.5">•</span>';
-                        html += '<span class="text-xs text-slate-600 dark:text-slate-300">' + (item[lang] || item['en']) + '</span>';
-                        html += '</div>';
-                    });
-                    html += '</div></div>';
-                }
-            });
-
-            container.innerHTML = html || '<p class="text-slate-400 text-xs">' + (i18n[lang]?.no_changes || 'No changes documented.') + '</p>';
+            btnCheck.disabled = false;
         }
 
         // =============================================
@@ -4504,310 +4548,9 @@
         }
 
         // =============================================
-        // UPDATE / DEPLOY
+        // UPDATE / DEPLOY - Simplified
         // =============================================
-        async function checkUpdate() {
-            try {
-                const res = await fetch(baseRoute + '/api/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: sessionKey, action: 'check' })
-                });
-                const data = await res.json();
-                if (data.success && data.updateAvailable) {
-                    window._updateData = data;
-                    if (window.nahanConfig?.autoUpdate && data.canDeploy) {
-                        const format = window.nahanConfig.autoUpdateFormat || 'normal';
-                        const formatEl = document.querySelector(`input[name="auto-update-format"][value="${format}"]`);
-                        if (formatEl) formatEl.checked = true;
-                        const autoRadio = document.querySelector(`input[name="auto-update-format"][value="${format}"]`);
-                        if (autoRadio) autoRadio.checked = true;
-                        doUpdate();
-                    } else {
-                        showUpdateBanner((document.getElementById('cfg-github-repo')?.value || window.nahanConfig?.githubRepo || 'mahbodrahimi/Vortix-Panel').replace('https://github.com/', '').replace('http://github.com/', '').trim(), data.latest);
-                    }
-                }
-                if (data.success && !data.canDeploy) {
-                    const statusEl = document.getElementById('update-deploy-status');
-                    if (statusEl) {
-                        statusEl.classList.remove('hidden');
-                        statusEl.className = 'w-full mt-3 p-3 rounded-xl text-sm font-bold text-center text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400';
-                        statusEl.textContent = i18n[lang].update_requires_cf || 'Configure CF credentials to enable auto-deploy.';
-                    }
-                }
-            } catch(err) {
-                console.error("Update check failed:", err);
-            }
-        }
-
-        async function doUpdate() {
-            const btn = document.getElementById('update-deploy-btn');
-            const statusEl = document.getElementById('update-deploy-status');
-            if (!btn) return;
-            if (!(await showConfirm(lang === 'fa' ? 'دپلوی' : 'Deploy', lang === 'fa' ? 'آیا از دپلوی نسخه فعلی/جدید اطمینان دارید؟' : 'Deploy the selected version now?'))) return;
-
-            const formatEl = document.querySelector('input[name="update-format"]:checked');
-            const format = formatEl ? formatEl.value : 'normal';
-            const forceDeploy = !window._updateData?.updateAvailable;
-
-            const origText = btn.innerHTML;
-            btn.innerHTML = '⏳ ' + (i18n[lang].update_deploying || 'Deploying...');
-            btn.disabled = true;
-            if (statusEl) {
-                statusEl.classList.remove('hidden');
-                statusEl.className = 'w-full mt-3 p-3 rounded-xl text-sm font-bold text-center text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 animate-pulse';
-                statusEl.textContent = i18n[lang].update_deploying || 'Deploying update (processing on server)...';
-            }
-
-            try {
-                const res = await fetch(baseRoute + '/api/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        key: sessionKey,
-                        action: 'deploy',
-                        format: format,
-                        force: forceDeploy
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    if (statusEl) {
-                        statusEl.className = 'w-full mt-3 p-3 rounded-xl text-sm font-bold text-center text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400';
-                        statusEl.textContent = (i18n[lang].update_success || 'Update successful!') + ' v' + data.newVersion;
-                    }
-                    btn.innerHTML = '✅ ' + (i18n[lang].update_success || 'Done!');
-                    setTimeout(() => window.location.reload(), 3000);
-                } else {
-                    if (statusEl) {
-                        statusEl.className = 'w-full mt-3 p-3 rounded-xl text-sm font-bold text-center text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
-                        statusEl.textContent = (i18n[lang].update_error || 'Update failed') + ': ' + (data.error || 'Unknown error');
-                    }
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            } catch(e) {
-                if (statusEl) {
-                    statusEl.className = 'w-full mt-3 p-3 rounded-xl text-sm font-bold text-center text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
-                    statusEl.textContent = 'Error: ' + e.message;
-                }
-                btn.innerHTML = origText;
-                btn.disabled = false;
-            }
-        }
-
-        async function showUpdateBanner(repo, version) {
-            const banner = document.getElementById('update-alert-banner');
-            if (!banner) return;
-
-            const msg = lang === 'fa'
-                ? 'نسخه جدیدتر (v' + version + ') در مخزن گیت‌هاب شما (' + repo + ') در دسترس است.'
-                : 'A newer version (v' + version + ') is available in your GitHub repository (' + repo + ').';
-
-            document.getElementById('update-alert-text').textContent = msg;
-            const ghLink = document.getElementById('update-github-link');
-            if (ghLink) ghLink.href = 'https://github.com/' + repo;
-            banner.classList.remove('hidden');
-            banner.classList.add('flex');
-
-            const changelogArea = document.getElementById('update-changelog-area');
-            const changelogContent = document.getElementById('update-changelog-content');
-            if (changelogArea && changelogContent) {
-                changelogArea.classList.remove('hidden');
-                changelogContent.innerHTML = lang === 'fa'
-                    ? '<p class="animate-pulse">در حال دریافت گزارش تغییرات...</p>'
-                    : '<p class="animate-pulse">Loading changelog...</p>';
-
-                try {
-                    let changelogText = '';
-                    try {
-                        const res = await fetch('https://api.github.com/repos/' + repo + '/releases/tags/v' + version);
-                        if (res.ok) {
-                            const rel = await res.json();
-                            if (rel && rel.body) {
-                                changelogText = rel.body;
-                            }
-                        } else {
-                            const resNoV = await fetch('https://api.github.com/repos/' + repo + '/releases/tags/' + version);
-                            if (resNoV.ok) {
-                                const relNoV = await resNoV.json();
-                                if (relNoV && relNoV.body) {
-                                    changelogText = relNoV.body;
-                                }
-                            }
-                        }
-                    } catch(e) {}
-
-                    if (!changelogText) {
-                        try {
-                            const resLatest = await fetch('https://api.github.com/repos/' + repo + '/releases/latest');
-                            if (resLatest.ok) {
-                                const relLatest = await resLatest.json();
-                                if (relLatest && relLatest.body) {
-                                    changelogText = relLatest.body;
-                                }
-                            }
-                        } catch(e) {}
-                    }
-
-                    if (!changelogText) {
-                        try {
-                            const resFile = await fetch('https://raw.githubusercontent.com/' + repo + '/main/CHANGELOG.md');
-                            if (resFile.ok) {
-                                changelogText = await resFile.text();
-                            }
-                        } catch(e) {}
-                    }
-
-                    if (changelogText) {
-                        changelogContent.innerHTML = parseMarkdown(changelogText);
-                    } else {
-                        changelogContent.innerHTML = lang === 'fa'
-                            ? '<div class="space-y-2"><p class="font-bold">✨ اضافه شده:</p><ul class="list-disc list-inside text-xs space-y-1"><li>صفحه اشتراک چندزبانه با حالت تاریک/روشن</li><li>پشتیبانی NAT64 و نودهای اختصاصی کاربر</li><li>کانفیگ‌های مستقیم و بروزرسانی خودکار</li><li>مدیریت کامل دروازه از ربات تلگرام</li></ul><p class="font-bold mt-2">⚡ بهبود یافته:</p><ul class="list-disc list-inside text-xs space-y-1"><li>عملکرد داشبورد و سرعت اسکرول</li><li>بازنویسی کامل تولید کانفیگ‌ها</li><li>نام‌گذاری هوشمند با تگ‌های جدید</li></ul><p class="font-bold mt-2">🔧 رفع شده:</p><ul class="list-disc list-inside text-xs space-y-1"><li>ترجمه‌های فارسی معیوب</li><li>خطای صفحه اشتراک</li></ul></div>'
-                            : '<div class="space-y-2"><p class="font-bold">✨ Added:</p><ul class="list-disc list-inside text-xs space-y-1"><li>Bilingual subscription page with dark/light mode</li><li>NAT64 support and per-user custom nodes</li><li>Direct configs and auto update</li><li>Full gateway management via Telegram bot</li></ul><p class="font-bold mt-2">⚡ Improved:</p><ul class="list-disc list-inside text-xs space-y-1"><li>Dashboard performance and scroll speed</li><li>Complete rewrite of all config generators</li><li>Smart config naming with new tags</li></ul><p class="font-bold mt-2">🔧 Fixed:</p><ul class="list-disc list-inside text-xs space-y-1"><li>Garbled Persian translations</li><li>Subscription page display error</li></ul></div>';
-                    }
-                } catch(err) {
-                    changelogContent.innerHTML = lang === 'fa'
-                        ? '<p class="text-rose-500">خطا در دریافت گزارش تغییرات.</p>'
-                        : '<p class="text-rose-500">Failed to load changelog.</p>';
-                }
-            }
-        }
-
-        function dismissUpdate() {
-            const b = document.getElementById('update-alert-banner');
-            if (b) {
-                b.classList.remove('flex');
-                b.classList.add('hidden');
-            }
-        }
-
-        function parseMarkdown(md) {
-            if (!md) return '';
-            let lines = md.split(/\r?\n/);
-            let htmlLines = [];
-            let inCodeBlock = false;
-            let codeContent = [];
-            let activeBlockLang = null;
-
-            for (let line of lines) {
-                let trimmed = line.trim();
-
-                if (trimmed === '<!-- LANG:EN -->' || trimmed === '<!--LANG:EN-->') {
-                    if (activeBlockLang === 'en') {
-                        activeBlockLang = null;
-                    } else {
-                        activeBlockLang = 'en';
-                    }
-                    continue;
-                }
-                if (trimmed === '<!-- LANG:FA -->' || trimmed === '<!--LANG:FA-->') {
-                    if (activeBlockLang === 'fa') {
-                        activeBlockLang = null;
-                    } else {
-                        activeBlockLang = 'fa';
-                    }
-                    continue;
-                }
-
-                if (activeBlockLang !== null && activeBlockLang !== lang) {
-                    continue;
-                }
-
-                if (trimmed.startsWith('```')) {
-                    if (inCodeBlock) {
-                        let codeText = codeContent.join('\n')
-                            .replace(/&/g, "&amp;")
-                            .replace(/</g, "&lt;")
-                            .replace(/>/g, "&gt;");
-                        htmlLines.push('<pre class="bg-slate-900/90 text-slate-100 p-3 rounded-xl my-2 font-mono text-[10px] overflow-x-auto border border-slate-800 max-h-40">' + codeText + '</pre>');
-                        codeContent = [];
-                        inCodeBlock = false;
-                    } else {
-                        inCodeBlock = true;
-                    }
-                    continue;
-                }
-
-                if (inCodeBlock) {
-                    codeContent.push(line);
-                    continue;
-                }
-
-                if (!trimmed) {
-                    continue;
-                }
-
-                if (trimmed.startsWith('### ')) {
-                    let text = trimmed.slice(4);
-                    htmlLines.push('<h5 class="text-sm font-bold text-amber-800 dark:text-amber-400 mt-3 mb-1">' + parseInlineMarkdown(text) + '</h5>');
-                    continue;
-                }
-                if (trimmed.startsWith('## ')) {
-                    let text = trimmed.slice(3);
-                    htmlLines.push('<h4 class="text-sm font-extrabold text-amber-800 dark:text-amber-400 mt-4 mb-2">' + parseInlineMarkdown(text) + '</h4>');
-                    continue;
-                }
-                if (trimmed.startsWith('# ')) {
-                    let text = trimmed.slice(2);
-                    htmlLines.push('<h3 class="text-base font-black text-amber-900 dark:text-amber-300 mt-4 mb-2">' + parseInlineMarkdown(text) + '</h3>');
-                    continue;
-                }
-
-                let listMatch = line.match(/^(\s*)([-*+])\s+(.*)$/);
-                if (listMatch) {
-                    let text = listMatch[3];
-                    htmlLines.push('<div class="flex items-start gap-2 my-1"><span class="text-amber-500 mt-0.5">▪</span><span class="flex-1">' + parseInlineMarkdown(text) + '</span></div>');
-                    continue;
-                }
-
-                htmlLines.push('<p class="my-1">' + parseInlineMarkdown(line) + '</p>');
-            }
-
-            if (inCodeBlock && codeContent.length > 0) {
-                let codeText = codeContent.join('\n')
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
-                htmlLines.push('<pre class="bg-slate-900/90 text-slate-100 p-3 rounded-xl my-2 font-mono text-[10px] overflow-x-auto border border-slate-800 max-h-40">' + codeText + '</pre>');
-            }
-
-            return htmlLines.join('\n');
-
-            function parseInlineMarkdown(text) {
-                let safe = text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
-                safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-[var(--color-text)]">$1</strong>');
-                safe = safe.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                safe = safe.replace(/`(.*?)`/g, '<code class="bg-amber-500/10 dark:bg-slate-800 px-1.5 py-0.5 rounded text-rose-500 font-mono text-[11px]">$1</code>');
-                return safe;
-            }
-        }
-
-        async function triggerManualRedeploy() {
-            const banner = document.getElementById('update-alert-banner');
-            if (!banner) return;
-
-            document.getElementById('update-alert-text').textContent = lang === 'fa'
-                ? 'می‌توانید آخرین نسخه فعال را مجدداً دپلوی نموده یا بین نسخه معمولی و مبهم‌سازی شده جابجا شوید.'
-                : 'You can redeploy the latest code or switch between Normal/Obfuscated version on the fly.';
-
-            banner.classList.remove('hidden');
-            banner.classList.add('flex');
-
-            if (!window._updateData) {
-                window._updateData = { latest: CURRENT_VERSION, updateAvailable: false };
-            }
-
-            const repo = (document.getElementById('cfg-github-repo')?.value || window.nahanConfig?.githubRepo || 'mahbodrahimi/Vortix-Panel').replace('https://github.com/', '').replace('http://github.com/', '').trim();
-
-            showUpdateBanner(repo, CURRENT_VERSION);
-
-            switchTab('overview');
-            document.getElementById('update-alert-banner').scrollIntoView({ behavior: 'smooth' });
-        }
+        // checkUpdate and doUpdate replaced with checkForUpdate and deployUpdate above
 
         // =============================================
         // PING TEST
@@ -5003,6 +4746,5 @@
         applyLang();
 
     </script>
-
 </body>
 </html>
