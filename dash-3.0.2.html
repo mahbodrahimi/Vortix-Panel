@@ -12,7 +12,7 @@
       <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png">
       <title>Vortix Gateway</title>
       <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&amp;display=swap" rel="stylesheet">
-      <script src="https://cdn.jsdelivr.net/gh/itsyebekhe/nahan@main/tailwindcss.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.js"></script>
       <script>
           tailwind.config = {
     darkMode: 'class',
@@ -452,7 +452,7 @@ html.dark select option {
                               <div class="native-press bg-[var(--color-surface)] rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm border border-slate-200 dark:border-darkborder">
                                   <div class="flex items-center justify-between mb-1 md:mb-2">
                                       <span class="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="ov_total_users">Total Users</span>
-                                      <div class="p-1.5 md:p-2 bg-primary/10 text-primary rounded-md md:rounded-lg"><svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-.126-1.283-.356-1.857M12 4.354a4 4 0 110 5.292"></path></svg></div>
+                                      <div class="p-1.5 md:p-2 bg-primary/10 text-primary rounded-md md:rounded-lg"><svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M12 4.354a4 4 0 110 5.292"></path></svg></div>
                                   </div>
                                   <p id="ov-total-users" class="text-xl md:text-2xl font-black text-slate-800 dark:text-white">-</p>
                               </div>
@@ -1197,7 +1197,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                       </div>
                                       <div>
                                           <label class="block text-xs font-bold text-slate-500 mb-1" data-i18n="add_node_apikey">API Key</label>
-                                          <input type="password" id="add-node-apikey" placeholder="nahan_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
+                                          <input type="password" id="add-node-apikey" placeholder="vortix_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
                                           <button type="button" onclick="const n=document.getElementById('add-node-apikey');n.type=n.type==='password'?'text':'password'" class="absolute end-14 mt-[-36px] px-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">👁️</button>
                                       </div>
                                   </div>
@@ -1268,11 +1268,10 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                                       </div>
                                       <div class="space-y-1">
                                           <label class="block text-sm font-bold text-slate-600 dark:text-slate-300" data-i18n="lbl_cf_worker">CF Worker Script Name</label>
-                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. nahan" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
+                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. vortix" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
                                           <p class="text-xs text-slate-400" data-i18n="desc_cf_worker">Required for in-panel updates. The script name shown in your Cloudflare Workers dashboard.</p>
                                       </div>
                                       <p class="text-xs text-slate-400" data-i18n="desc_cf_api">Optional: Monitor Worker free usage limits (100k/day). Needs Account Analytics Read permission.</p>
-                                      <!-- Beginner's Guide removed -->
                                   </div>
                               </div>
                           </div>
@@ -1780,16 +1779,24 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
 
       // -------------------- VERSION & I18N ----------------------------
       const CURRENT_VERSION = "__CURRENT_VERSION__";
+
+      // -------------------- I18N OBJECT --------------------------------
       const i18n = {
           en: {
-              title: "Vortix Gateway", pass_ph: "Master Key", login_btn: "Authenticate", err_pass: "Access Denied",
-              missing_db: "⚠️ IOT_DB namespace missing! Settings won't save.", system_online: "System online",
-              logout: "Disconnect", tab_overview: "Dashboard", tab_info: "Endpoints", tab_status: "Metrics",
-              tab_settings: "System", tab_adv: "Advanced", tab_logs: "Logs", tab_users: "Clients",
-              qr_title: "Direct Stream Link", badge_multi: "Dual-Core Multiplexed", copy: "Copy", copied: "Copied to clipboard!",
-              sync_link: "Cloud Sync URL", active_id: "Hardware ID", stat_ip: "Origin IP", stat_dc: "Edge Node",
-              stat_loc: "Data Region", stat_datetime: "Date Time",
-              // ----- Proxy Servers (NEW) -----
+              title: "Vortix Gateway",
+              pass_ph: "Master Key",
+              login_btn: "Authenticate",
+              err_pass: "Access Denied",
+              missing_db: "⚠️ IOT_DB namespace missing! Settings won't save.",
+              system_online: "System online",
+              logout: "Disconnect",
+              tab_overview: "Dashboard",
+              tab_info: "Endpoints",
+              tab_status: "Metrics",
+              tab_settings: "System",
+              tab_adv: "Advanced",
+              tab_logs: "Logs",
+              tab_users: "Clients",
               proxy_servers_title: "Proxy Servers",
               source_proxy_servers: "Source Proxy Servers",
               dest_proxy_servers: "Destination Proxy Servers",
@@ -1807,44 +1814,190 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ip_copied: 'IPs copied to clipboard!',
               ip_loaded_to_clean: 'IPs loaded to Clean IPs field.',
               ip_loaded_to_relay: 'IPs loaded to Relay IPs field.',
-              // ----- End new -----
-              lbl_proto: "Primary Display Mode", lbl_port: "Data Port", lbl_id: "Device UUID (Empty=Auto)",
-              lbl_path: "API Route (Hidden Path)", lbl_pass: "Master Key", lbl_fp: "TLS Signature",
-              lbl_dns: "Resolver IP", lbl_doh: "Custom DNS (DoH Provider)",
-              lbl_clean_ips: "Clean IPs (Multi-Generator)", ph_clean_ips: "1.1.1.1, 2.2.2.2",
+              qr_title: "Direct Stream Link",
+              badge_multi: "Dual-Core Multiplexed",
+              copy: "Copy",
+              copied: "Copied to clipboard!",
+              sync_link: "Cloud Sync URL",
+              active_id: "Hardware ID",
+              stat_ip: "Origin IP",
+              stat_dc: "Edge Node",
+              stat_loc: "Data Region",
+              stat_datetime: "Date Time",
+              lbl_proto: "Primary Display Mode",
+              lbl_port: "Data Port",
+              lbl_id: "Device UUID (Empty=Auto)",
+              lbl_path: "API Route (Hidden Path)",
+              lbl_pass: "Master Key",
+              lbl_fp: "TLS Signature",
+              lbl_dns: "Resolver IP",
+              lbl_doh: "Custom DNS (DoH Provider)",
+              lbl_clean_ips: "Clean IPs (Multi-Generator)",
+              ph_clean_ips: "1.1.1.1, 2.2.2.2",
               desc_clean_ips: "Separate IPs by comma or new line. Use IP#Name to tag IPs.",
-              lbl_relay: "Proxy IPs (Comma/Newline separated)", lbl_nat64: "NAT64 Prefix",
+              lbl_relay: "Proxy IPs (Comma/Newline separated)",
+              lbl_nat64: "NAT64 Prefix",
               desc_nat64: "Optional. Converts IPv4 Proxy IPs to NAT64 IPv6 addresses.",
               lbl_direct_configs: "Include Direct Configs",
-              lbl_fake_configs: "Subscription Fake Entries", desc_fake_configs: "Use {usage} and {expiry} for dynamic values.",
-              btn_add_entry: "Add Entry", lbl_tg_token: "Telegram Bot Token", lbl_tg_chat: "Telegram Chat ID",
-              lbl_tg_admin: "Authorized Admin ID", desc_tg_admin: "Only this Telegram User ID can manage the panel via bot.",
+              lbl_fake_configs: "Subscription Fake Entries",
+              desc_fake_configs: "Use {usage} and {expiry} for dynamic values.",
+              btn_add_entry: "Add Entry",
+              lbl_tg_token: "Telegram Bot Token",
+              lbl_tg_chat: "Telegram Chat ID",
+              lbl_tg_admin: "Authorized Admin ID",
+              desc_tg_admin: "Only this Telegram User ID can manage the panel via bot.",
               desc_tg_bot: "Set these values to receive login alerts via Telegram.",
-              lbl_cf_acc: "Cloudflare Account ID", lbl_cf_token: "Cloudflare API Token",
+              lbl_cf_acc: "Cloudflare Account ID",
+              lbl_cf_token: "Cloudflare API Token",
               desc_cf_api: "Optional: Monitor Worker daily usage limit (100k/day).",
-              lbl_cf_worker: "CF Worker Script Name", desc_cf_worker: "Required for in-panel updates.",
-              lbl_silent: "Silent UI Alerts", lbl_pause: "Kill Switch (Pause System)",
+              lbl_cf_worker: "CF Worker Script Name",
+              desc_cf_worker: "Required for in-panel updates.",
+              lbl_silent: "Silent UI Alerts",
+              lbl_pause: "Kill Switch (Pause System)",
               lbl_sub_ua: "Custom Subscription User-Agent",
               desc_sub_ua: "Allow specific browser User-Agent containing this text to bypass camouflage.",
               lbl_custom_panel_url: "Custom Panel URL / Subscription Domain",
               desc_custom_panel_url: "Optionally specify a custom domain/URL for subscription/sync links.",
-              lbl_github_repo: "GitHub Update Repository", btn_redeploy_force: "Force Redeploy / Switch Format",
-              lbl_auto_update: "Auto-Update", lbl_auto_update_format: "Update Format",
-              format_normal_label: "Normal", format_obfuscated_label: "Obfuscated",
-              desc_format_normal: "Standard _worker.js", desc_format_obfuscated: "XOR byte-shifting",
-              lbl_strategy: "Configuration Name Strategy", lbl_prefix: "Custom Name Prefix",
+              lbl_github_repo: "GitHub Update Repository",
+              btn_redeploy_force: "Force Redeploy / Switch Format",
+              lbl_auto_update: "Auto-Update",
+              lbl_auto_update_format: "Update Format",
+              format_normal_label: "Normal",
+              format_obfuscated_label: "Obfuscated",
+              desc_format_normal: "Standard _worker.js",
+              desc_format_obfuscated: "XOR byte-shifting",
+              lbl_strategy: "Configuration Name Strategy",
+              lbl_prefix: "Custom Name Prefix",
               html_desc_prefix_note: "This prefix is injected where the <code>{PREFIX}</code> tag is used.",
-              // ... (rest of existing i18n keys)
+              ov_total_users: "Total Users",
+              ov_active_users: "Active",
+              ov_paused_users: "Paused",
+              ov_auto_disabled: "Auto-Disabled",
+              ov_expired_users: "Expired",
+              ov_total_traffic: "Total Traffic",
+              ov_today_traffic: "Today's Traffic",
+              ov_requests: "requests",
+              ov_active_conns: "Active Connections",
+              ov_system: "System",
+              ov_recent_activity: "Recent Activity",
+              ov_view_all: "View All →",
+              ov_loading: "Loading...",
+              ov_quick_actions: "Quick Actions",
+              ov_add_user: "Add User",
+              ov_manage_users: "Manage Users",
+              ov_backup_config: "Backup Config",
+              ov_refresh: "Refresh Statistics",
+              ov_gb_unit: "GB",
+              stat_total_subscribers: "Total Subscribers",
+              stat_active_paused: "Active/Paused",
+              stat_cumulative_traffic: "Cumulative Traffic",
+              stat_auto_disabled: "Auto-Disabled",
+              sub_directory_title: "Subscriber Directory",
+              filter_all: "All Users",
+              filter_active: "Active",
+              filter_paused: "Paused",
+              filter_auto_disabled: "Auto-Disabled",
+              user_search_placeholder: "🔍 Find by Name or UUID...",
+              disabled_panel_title: "Recently Disabled Users",
+              disabled_panel_desc: "Users automatically disabled due to quota or expiration limits",
+              modal_add_title: "Add New User",
+              lbl_u_name: "Name (Required)",
+              lbl_custom_config_name: "Custom Config Name",
+              section_basic_info: "Basic Info",
+              section_limits: "Limits",
+              section_network: "Network",
+              section_advanced: "Advanced",
+              section_advanced_tag: "(Advanced)",
+              section_advanced_subtag: "(Protocol & Ports)",
+              lbl_traffic_limit_gb: "Traffic Limit (GB)",
+              lbl_daily_limit_gb: "Daily Limit (GB)",
+              lbl_expiration_days: "Expiration (Days)",
+              lbl_conn_limit: "Connection Limit",
+              desc_conn_limit: "Max simultaneous connections per user. Leave empty for unlimited.",
+              lbl_clean_ips: "Clean IPs",
+              lbl_proxy_ips: "Proxy IPs",
+              lbl_assigned_nodes: "Assigned Nodes",
+              lbl_user_panel_url: "Main Panel URL",
+              lbl_nat64: "NAT64 Prefix",
+              lbl_protocol_mode: "Protocol Mode",
+              lbl_max_configs: "Max Configs",
+              unlimited: "Unlimited",
+              placeholder_user_name: "e.g. Ali",
+              placeholder_config_name: "Leave empty to use user name",
+              desc_user_name: "Name shown in the user list",
+              placeholder_name: "Name",
+              desc_assigned_nodes: "Custom Nodes (comma/newline, empty = all nodes)",
+              edit_sub: "Edit Subscriber",
+              lbl_name_ph: "Name (Required)",
+              btn_save_changes: "Save Changes",
+              btn_cancel: "Cancel",
+              save_btn_user: "Save User",
+              save_btn: "Save Config",
+              lbl_api_keys: "Panel API Keys",
+              desc_api_keys: "Generate API keys to securely connect remote panels.",
+              btn_generate_key: "Generate Key",
+              api_key_created: "API Key Created! Copy it now — it won't be shown again.",
+              backup_restore_title: "Backup & Restore",
+              export_btn: "📥 Export Configuration (JSON)",
+              import_btn: "📤 Import Configuration (JSON)",
+              other_nodes_title: "Other Nodes",
+              other_nodes_desc: "External nodes (URL + API Key) for cross-panel management.",
+              add_node_title: "Add External Node",
+              add_node_desc: "Enter the URL and API Key of the external panel.",
+              add_node_url: "Node URL",
+              add_node_apikey: "API Key",
+              add_node_confirm: "Add Node",
+              adv_network_dns: "Network & DNS",
+              adv_proxy_relay: "Proxy & Relay",
+              adv_subscription: "Subscription",
+              adv_upstream_title: "Upstream VLESS",
+              adv_upstream_label: "VLESS Server Link",
+              adv_upstream_desc1: "<strong>What does this do?</strong><br>It lets you use a free VLESS server so all your traffic goes through that server. Your exit IP becomes the server's IP.",
+              adv_upstream_desc2: "<strong>Why is it useful?</strong><br>Sometimes you need an IP from a specific country but don't want to buy a server. This lets you use that country's IP for free.",
+              adv_upstream_desc3: "<strong>How to use?</strong><br>1. Copy a VLESS link<br>2. Paste it here<br>3. Click Save",
+              adv_routing_title: "Custom Routing",
+              adv_routing_desc: "<strong>What does this do?</strong><br>Some sites or addresses you want to access directly without proxy. Add them here so their traffic goes through the normal path instead of the proxy.",
+              adv_routing_label: "Custom Direct Routing",
+              adv_routing_hint: "One domain, IP, geoip (e.g., geoip:ir) or geosite (e.g., geosite:ir) per line.",
+              adv_routing_warning: "Wrong entries or bad formatting can break connections. Double check before saving.",
+              adv_protocol: "Protocol",
+              adv_telegram: "Telegram Bot",
+              adv_cloudflare: "Update Settings",
+              lbl_tfo: "TCP Fast Open",
+              lbl_ech: "Secure Hello (ECH)",
+              metrics_live: "Live Profile Usage",
+              no_metrics: "No active connection data yet.",
+              ping_test_title: "Latency Diagnostics",
+              ping_test_desc: "Test response time to your active node target.",
+              run_diagnostics: "⚡ Run Diagnostics",
+              target_node: "Target Node",
+              response: "Response",
+              status: "Status",
+              local_port: "Local Port",
+              update_avail: "New version available!",
+              deploy_btn: "Deploy Now",
+              view_github: "View on GitHub",
+              format_normal: "Normal (_worker.js)",
+              format_obfuscated: "Obfuscated (UTF-8 + XOR)",
+              lbl_update_format: "Update Format & Obfuscation:",
+              desc_update_format: "Deploy clean source code, or encrypt using dynamic XOR byte-shifting to avoid network interception.",
+              changelog_title: "Changelog of New Version:",
           },
           fa: {
-              title: "دروازه ورتیکس", pass_ph: "کلید اصلی", login_btn: "ورود به سیستم", err_pass: "دسترسی مسدود شد",
-              missing_db: "⚠️ فضای پایگاه داده یافت نشد! تنظیمات ذخیره نمی‌شوند.", system_online: "سیستم فعال است",
-              logout: "خروج", tab_overview: "نمای کلی", tab_info: "نودها", tab_status: "شبکه",
-              tab_settings: "تنظیمات", tab_adv: "پیشرفته", tab_logs: "گزارش فعالیت", tab_users: "کاربران",
-              qr_title: "لینک اتصال مستقیم", badge_multi: "ترکیب ترانزیت پیشرفته دوگانه", copy: "کپی", copied: "در حافظه کپی شد!",
-              sync_link: "لینک ساب (همگام سازی ابری)", active_id: "شناسه سخت‌افزار", stat_ip: "آی‌پی مبدا", stat_dc: "گره لبه",
-              stat_loc: "منطقه داده", stat_datetime: "تاریخ و زمان",
-              // ----- Proxy Servers (NEW) -----
+              title: "دروازه ورتیکس",
+              pass_ph: "کلید اصلی",
+              login_btn: "ورود به سیستم",
+              err_pass: "دسترسی مسدود شد",
+              missing_db: "⚠️ فضای پایگاه داده یافت نشد! تنظیمات ذخیره نمی‌شوند.",
+              system_online: "سیستم فعال است",
+              logout: "خروج",
+              tab_overview: "نمای کلی",
+              tab_info: "نودها",
+              tab_status: "شبکه",
+              tab_settings: "تنظیمات",
+              tab_adv: "پیشرفته",
+              tab_logs: "گزارش فعالیت",
+              tab_users: "کاربران",
               proxy_servers_title: "سرورهای واسطه",
               source_proxy_servers: "سرورهای واسطه مبدا",
               dest_proxy_servers: "سرورهای واسطه مقصد",
@@ -1862,8 +2015,174 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ip_copied: 'آی‌پی‌ها در حافظه کپی شدند!',
               ip_loaded_to_clean: 'آی‌پی‌ها به بخش آی‌پی تمیز انتقال یافتند.',
               ip_loaded_to_relay: 'آی‌پی‌ها به بخش آی‌پی پروکسی انتقال یافتند.',
-              // ----- End new -----
-              // ... (rest of existing i18n keys)
+              qr_title: "لینک اتصال مستقیم",
+              badge_multi: "ترکیب ترانزیت پیشرفته دوگانه",
+              copy: "کپی",
+              copied: "در حافظه کپی شد!",
+              sync_link: "لینک ساب (همگام سازی ابری)",
+              active_id: "شناسه سخت‌افزار",
+              stat_ip: "آی‌پی مبدا",
+              stat_dc: "گره لبه",
+              stat_loc: "منطقه داده",
+              stat_datetime: "تاریخ و زمان",
+              lbl_proto: "پروتکل نمایش مستقیم",
+              lbl_port: "پورت داده",
+              lbl_id: "شناسه یکتا (خالی=خودکار)",
+              lbl_path: "مسیر مخفی آی‌پی‌آی",
+              lbl_pass: "کلید اصلی",
+              lbl_fp: "امضای امنیتی",
+              lbl_dns: "آی‌پی تحلیلگر",
+              lbl_doh: "تحلیل‌گر تخصصی آدرس‌یابی عددی",
+              lbl_clean_ips: "آی‌پی‌های تمیز (مولد چندگانه)",
+              ph_clean_ips: "1.1.1.1, 2.2.2.2",
+              desc_clean_ips: "آی‌پی ها را با کاما یا خط جدید جدا کنید. لینک ساب برای همه ترکیب می‌سازد.",
+              lbl_relay: "آی‌پی جایگزین (کمکی)",
+              lbl_nat64: "پیشوند NAT64",
+              desc_nat64: "اختیاری. آی‌پی‌های پروکسی IPv4 را به آدرس‌های NAT64 IPv6 تبدیل می‌کند.",
+              lbl_direct_configs: "شامل کانفیگ‌های مستقیم",
+              lbl_fake_configs: "ورودی‌های اطلاعاتی اشتراک",
+              desc_fake_configs: "متن نمایشی ورودی‌ها در پروفایل اشتراک را سفارشی کنید.",
+              btn_add_entry: "افزودن ورودی",
+              lbl_tg_token: "توکن ربات تلگرام",
+              lbl_tg_chat: "شناسه عددی تلگرام",
+              lbl_tg_admin: "شناسه مدیر تلگرام",
+              desc_tg_admin: "فقط این شناسه کاربری تلگرام می‌تواند پنل را از طریق ربات مدیریت کند.",
+              desc_tg_bot: "با تنظیم این مقادیر، جزئیات ورود به پنل به تلگرام ارسال می‌شود.",
+              lbl_cf_acc: "شناسه اکانت ابری",
+              lbl_cf_token: "توکن دسترسی کاربری",
+              desc_cf_api: "اختیاری: برای نمایش میزان مصرف روزانه کارگر از صد هزار درخواست رایگان.",
+              lbl_cf_worker: "نام اسکریپت کارگر ابری",
+              desc_cf_worker: "برای بروزرسانی خودکار الزامی است.",
+              lbl_silent: "هشدار و پیغام خاموش",
+              lbl_pause: "کلید توقف اضطراری",
+              lbl_sub_ua: "یوزراجنت سفارشی ساب",
+              desc_sub_ua: "درخواست‌های مرورگر که حاوی این متن باشند، استتار را خنثی کرده و مستقیم به ساب دسترسی پیدا می‌کنند.",
+              lbl_custom_panel_url: "آدرس سفارشی پنل / دامنه اشتراک",
+              desc_custom_panel_url: "اختیاری. یک دامنه/آدرس سفارشی برای لینک‌های ساب/همگام‌سازی وارد کنید.",
+              lbl_github_repo: "مخزن منبع جهت بروزرسانی",
+              btn_redeploy_force: "تفویض مجدد / تغییر قالب پنل",
+              lbl_auto_update: "بروزرسانی خودکار",
+              lbl_auto_update_format: "قالب بروزرسانی",
+              format_normal_label: "معمولی",
+              format_obfuscated_label: "مبهم‌سازی شده",
+              desc_format_normal: "استاندارد _worker.js",
+              desc_format_obfuscated: "جابجایی بایت XOR",
+              lbl_strategy: "روش نام‌گذاری کانفیگ‌ها",
+              lbl_prefix: "پیشوند نام کانفیگ‌ها",
+              html_desc_prefix_note: "این پیشوند در هر جایی از طرح نام‌گذاری که متغیر <code>{PREFIX}</code> قرار داشته باشد جایگزین می‌شود.",
+              ov_total_users: "کل کاربران",
+              ov_active_users: "فعال",
+              ov_paused_users: "متوقف",
+              ov_auto_disabled: "غیرفعال خودکار",
+              ov_expired_users: "منقضی",
+              ov_total_traffic: "ترافیک کل",
+              ov_today_traffic: "ترافیک امروز",
+              ov_requests: "درخواست",
+              ov_active_conns: "اتصالات فعال",
+              ov_system: "سیستم",
+              ov_recent_activity: "فعالیت‌های اخیر",
+              ov_view_all: "مشاهده همه ←",
+              ov_loading: "در حال بارگذاری...",
+              ov_quick_actions: "عملیات سریع",
+              ov_add_user: "افزودن کاربر",
+              ov_manage_users: "مدیریت کاربران",
+              ov_backup_config: "پشتیبان‌گیری",
+              ov_refresh: "بروزرسانی آمار",
+              ov_gb_unit: "گیگابایت",
+              stat_total_subscribers: "کل مشترکین",
+              stat_active_paused: "فعال / متوقف شده",
+              stat_cumulative_traffic: "ترافیک کل انباشته",
+              stat_auto_disabled: "غیرفعال خودکار",
+              sub_directory_title: "فهرست مشترکین",
+              filter_all: "همه کاربران",
+              filter_active: "فعال",
+              filter_paused: "متوقف شده",
+              filter_auto_disabled: "غیرفعال خودکار",
+              user_search_placeholder: "🔍 جستجو بر اساس نام یا شناسه...",
+              disabled_panel_title: "کاربران اخیراً غیرفعال شده",
+              disabled_panel_desc: "کاربرانی که به دلیل اتمام سهمیه یا تاریخ انقضا غیرفعال شده‌اند",
+              modal_add_title: "افزودن کاربر جدید",
+              lbl_u_name: "نام کاربر",
+              lbl_custom_config_name: "نام سفارشی کانفیگ",
+              section_basic_info: "اطلاعات پایه",
+              section_limits: "محدودیت‌ها",
+              section_network: "شبکه",
+              section_advanced: "پیشرفته",
+              section_advanced_tag: "(پیشرفته)",
+              section_advanced_subtag: "(پروتکل و پورت)",
+              lbl_traffic_limit_gb: "محدودیت ترافیک (GB)",
+              lbl_daily_limit_gb: "محدودیت روزانه (GB)",
+              lbl_expiration_days: "تاریخ انقضا (روز)",
+              lbl_conn_limit: "محدودیت اتصال همزمان",
+              desc_conn_limit: "حداکثر اتصالات همزمان برای هر کاربر. برای نامحدود خالی بگذارید.",
+              lbl_clean_ips: "آی‌پی تمیز",
+              lbl_proxy_ips: "آی‌پی پروکسی",
+              lbl_assigned_nodes: "نودهای اختصاصی",
+              lbl_user_panel_url: "آدرس پنل اصلی",
+              lbl_nat64: "پیشوند NAT64",
+              lbl_protocol_mode: "پروتکل",
+              lbl_max_configs: "حداکثر کانفیگ",
+              unlimited: "نامحدود",
+              placeholder_user_name: "مثلاً: علی",
+              placeholder_config_name: "خالی = از نام کاربر استفاده بشه",
+              desc_user_name: "نامی که در لیست کاربران نمایش داده میشه",
+              placeholder_name: "نام",
+              desc_assigned_nodes: "نودهای سفارشی (کاما/خط جدید، خالی = همه نودها)",
+              edit_sub: "ویرایش کاربر",
+              lbl_name_ph: "نام کاربر",
+              btn_save_changes: "ذخیره تغییرات",
+              btn_cancel: "انصراف",
+              save_btn_user: "ذخیره کاربر",
+              save_btn: "ذخیره تنظیمات",
+              lbl_api_keys: "کلیدهای API پنل",
+              desc_api_keys: "کلیدهای API برای اتصال امن پنل‌های راهدور ایجاد کنید.",
+              btn_generate_key: "ایجاد کلید",
+              api_key_created: "کلید API ایجاد شد! آن را کپی کنید — دوباره نمایش داده نخواهد شد.",
+              backup_restore_title: "پشتیبان‌گیری و بازیابی",
+              export_btn: "📥 برون‌بری فایل پیکربندی (نسخه پشتیبان)",
+              import_btn: "📤 درون‌ریزی فایل پیکربندی (نسخه پشتیبان)",
+              other_nodes_title: "سایر نودها",
+              other_nodes_desc: "نودهای خارجی (URL + کلید API) برای مدیریت بین پنل‌ها.",
+              add_node_title: "افزودن نود خارجی",
+              add_node_desc: "آدرس URL و کلید API پنل خارجی را وارد کنید.",
+              add_node_url: "آدرس نود",
+              add_node_apikey: "کلید API",
+              add_node_confirm: "افزودن نود",
+              adv_network_dns: "شبکه و DNS",
+              adv_proxy_relay: "پروکسی و رله",
+              adv_subscription: "اشتراک",
+              adv_upstream_title: "آپ‌استریم VLESS",
+              adv_upstream_label: "لینک سرور VLESS",
+              adv_upstream_desc1: "<strong>این بخش چیکار میکنه؟</strong><br>یه سرور رایگان VLESS به پنل معرفی می‌کنی تا تمام ترافیکت از اون سوراخ رد بشه.",
+              adv_upstream_desc2: "<strong>چرا لازمه؟</strong><br>بعضی وقتا به IP یه کشور خاص نیاز داری ولی نمی‌خوای سرور بخری.",
+              adv_upstream_desc3: "<strong>چطوری استفاده کنم؟</strong><br>۱. لینک VLESS رو کپی کن<br>۲. لینک رو اینجا paste کن<br>۳. Save کن",
+              adv_routing_title: "مسیریابی سفارشی",
+              adv_routing_desc: "<strong>این بخش چیکار میکنه؟</strong><br>بعضی سایت‌ها یا آدرس‌ها رو می‌خوای بدون پروکسی باز کنی (مستقیم وصل بشی). اینجا آدرس‌ها رو بنویس تا ترافیکشون از مسیر عادی رد بشه.",
+              adv_routing_label: "مسیریابی مستقیم سفارشی",
+              adv_routing_hint: "هر خط یه آدرس، IP، geoip (مثلاً geoip:ir) یا geosite (مثلاً geosite:ir) باشه.",
+              adv_routing_warning: "اگه آدرس اشتباه بنویسی یا فرمت درست نباشه، اتصال قطع میشه. قبل از ذخیره حتماً چک کن.",
+              adv_protocol: "پروتکل",
+              adv_telegram: "ربات تلگرام",
+              adv_cloudflare: "تنظیمات به‌روزرسانی",
+              lbl_tfo: "اتصال سریع",
+              lbl_ech: "سلام امن",
+              metrics_live: "وضعیت زنده مصرف اتصالات و پردازش",
+              no_metrics: "هنوز داده‌ای از تراکنش و اتصالات فعال ثبت نشده است.",
+              ping_test_title: "عیب‌یابی تاخیر شبکه",
+              ping_test_desc: "تاخیر پاسخ‌دهی را به آی‌پی تمیز فعال اندازه بگیرید.",
+              run_diagnostics: "⚡ اجرای عیب‌یابی شبکه",
+              target_node: "هدف گره شبکه",
+              response: "مدت زمان تاخیر پاسخگویی",
+              status: "وضعیت گره",
+              local_port: "درگاه محلی",
+              update_avail: "بروزرسانی جدید در دسترس است!",
+              deploy_btn: "هم‌اکنون نصب کن",
+              view_github: "مشاهده در گیت‌هاب",
+              format_normal: "معمولی (_worker.js)",
+              format_obfuscated: "مبهم‌سازی شده (UTF-8 + XOR)",
+              lbl_update_format: "قالب بروزرسانی و حذف ردگیری:",
+              desc_update_format: "سورس کد معمولی را دپلوی کنید یا از مبهم‌سازی بایت‌ها با کلید متغیر XOR برای عدم فیلترینگ استفاده نمایید.",
+              changelog_title: "گزارش تغییرات و توضیحات نسخه جدید:",
           }
       };
 
@@ -1871,7 +2190,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       let sessionKey = "", baseRoute = window.location.pathname.split('/dash')[0];
       let hostName = window.location.hostname, localUUID = "";
 
-      // Apply language
       function applyLang() {
           document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
           document.documentElement.lang = lang;
@@ -1910,7 +2228,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       }
       applyLang();
 
-      // Theme
       if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
       }
@@ -1926,10 +2243,9 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       }
 
       // ===============================================================
-      // PROXY SERVER FUNCTIONS (NEW)
+      // PROXY SERVER FUNCTIONS
       // ===============================================================
 
-      // Source Proxy Servers - fetch from clean-ip.txt
       async function loadSourceProxyServers() {
           const countInput = document.getElementById('source-proxy-count');
           const display = document.getElementById('source-proxy-ips-display');
@@ -1949,19 +2265,13 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               if (!response.ok) throw new Error('HTTP ' + response.status);
               const text = await response.text();
 
-              const lines = text.split('\n')
-                  .map(line => line.trim())
-                  .filter(line => line.length > 0 && !line.startsWith('#'));
+              const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('#'));
 
-              if (lines.length === 0) {
-                  throw new Error('No IPs found in repository');
-              }
+              if (lines.length === 0) throw new Error('No IPs found in repository');
 
-              // Shuffle and pick random IPs
               const shuffled = lines.sort(() => Math.random() - 0.5);
               const selected = shuffled.slice(0, count);
 
-              // Display results
               display.innerHTML = selected.map((ip, idx) =>
                   `<div class="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/50 last:border-0">
                       <span class="font-mono">${ip}</span>
@@ -1969,9 +2279,7 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   </div>`
               ).join('');
 
-              // Store for copy
               window._sourceProxyIPs = selected;
-
               badge.textContent = selected.length + ' IPs';
               status.textContent = '✅ ' + (i18n[lang]?.ip_loaded || 'IPs loaded successfully.');
               status.className = 'text-[10px] mt-2 text-emerald-500';
@@ -1985,7 +2293,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
-      // Destination Proxy Servers - fetch from proxy.txt
       async function loadDestinationProxyServers() {
           const countInput = document.getElementById('dest-proxy-count');
           const display = document.getElementById('dest-proxy-ips-display');
@@ -2005,13 +2312,9 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               if (!response.ok) throw new Error('HTTP ' + response.status);
               const text = await response.text();
 
-              const lines = text.split('\n')
-                  .map(line => line.trim())
-                  .filter(line => line.length > 0 && !line.startsWith('#'));
+              const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('#'));
 
-              if (lines.length === 0) {
-                  throw new Error('No IPs found in repository');
-              }
+              if (lines.length === 0) throw new Error('No IPs found in repository');
 
               const shuffled = lines.sort(() => Math.random() - 0.5);
               const selected = shuffled.slice(0, count);
@@ -2024,7 +2327,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               ).join('');
 
               window._destProxyIPs = selected;
-
               badge.textContent = selected.length + ' IPs';
               status.textContent = '✅ ' + (i18n[lang]?.ip_loaded || 'IPs loaded successfully.');
               status.className = 'text-[10px] mt-2 text-emerald-500';
@@ -2038,31 +2340,26 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
-      // Copy Source IPs
       function copySourceProxyIPs() {
           const ips = window._sourceProxyIPs || [];
           if (ips.length === 0) {
               showToast(lang === 'fa' ? 'ابتدا آی‌پی‌ها را بارگذاری کنید' : 'Load IPs first', 'error');
               return;
           }
-          const text = ips.join('\n');
-          navigator.clipboard.writeText(text);
+          navigator.clipboard.writeText(ips.join('\n'));
           showToast(i18n[lang]?.ip_copied || 'IPs copied!', 'success');
       }
 
-      // Copy Destination IPs
       function copyDestinationProxyIPs() {
           const ips = window._destProxyIPs || [];
           if (ips.length === 0) {
               showToast(lang === 'fa' ? 'ابتدا آی‌پی‌ها را بارگذاری کنید' : 'Load IPs first', 'error');
               return;
           }
-          const text = ips.join('\n');
-          navigator.clipboard.writeText(text);
+          navigator.clipboard.writeText(ips.join('\n'));
           showToast(i18n[lang]?.ip_copied || 'IPs copied!', 'success');
       }
 
-      // Load Source IPs to Clean IPs textarea
       function loadSourceToCleanIPs() {
           const ips = window._sourceProxyIPs || [];
           if (ips.length === 0) {
@@ -2071,7 +2368,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
           const textarea = document.getElementById('cfg-ips');
           if (!textarea) return;
-          // Append to existing text
           let current = textarea.value;
           if (current && !current.endsWith('\n')) current += '\n';
           textarea.value = current + ips.join('\n');
@@ -2080,7 +2376,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           showToast(i18n[lang]?.ip_loaded_to_clean || 'Loaded to Clean IPs!', 'success');
       }
 
-      // Load Destination IPs to Relay textarea
       function loadDestinationToRelay() {
           const ips = window._destProxyIPs || [];
           if (ips.length === 0) {
@@ -2121,8 +2416,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
                   document.getElementById('net-colo').textContent = data.network.colo;
                   document.getElementById('net-loc').textContent = data.network.loc;
                   const conf = data.config;
-                  // ... existing config loading logic ...
-                  // Load config into fields
                   document.getElementById('cfg-proto').value = conf.mode || 'alpha';
                   let pList = (conf.socketPorts || '443').split(',');
                   Array.from(document.getElementById('cfg-port').options).forEach(o => o.selected = pList.includes(o.value));
@@ -2170,7 +2463,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
           }
       }
 
-      // Placeholder functions for existing features
       function switchTab(tab) { /* existing logic */ }
       function updateUI() { /* existing logic */ }
       function renderUsersTable() { /* existing logic */ }
@@ -2219,7 +2511,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
       function copyToClipboard(text) { /* existing logic */ }
       function showQR(name, url) { /* existing logic */ }
 
-      // Initialize
       document.addEventListener('DOMContentLoaded', () => {
           const savedVariant = localStorage.getItem('theme_variant') || 'system';
           document.documentElement.setAttribute('data-theme', savedVariant);
@@ -2239,7 +2530,6 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               } catch(e) {}
           }
 
-          // Strategy suggestions
           const strategyInput = document.getElementById('cfg-name-strategy');
           const suggestionsBox = document.getElementById('cfg-strategy-suggestions');
           if (strategyInput && suggestionsBox) {
@@ -2263,11 +2553,9 @@ proxyip.cmliussss.net" class="w-full px-4 py-3 rounded-xl border border-slate-20
               });
           }
 
-          // DateTime
           updatePersianDateTime();
           setInterval(updatePersianDateTime, 1000);
 
-          // Proxy server count inputs - validate min/max
           ['source-proxy-count', 'dest-proxy-count'].forEach(id => {
               const el = document.getElementById(id);
               if (el) {
