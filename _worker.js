@@ -1,11 +1,12 @@
 import { connect } from "cloudflare:sockets";
 
 /*
- * Project Nahan (نهان) - IoT Device Telemetry Gateway
- * Handles real-time binary streams from remote sensor nodes.
+ * Vortix Gateway - Cloudflare Worker
+ * Version: 3.0.1
+ * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.0.1";
+const CURRENT_VERSION = "3.0.2";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
 const getBeta = () => String.fromCharCode(116, 114, 111, 106, 97, 110);
@@ -51,7 +52,7 @@ const SYSTEM_DEFAULTS = {
     cfWorkerName: "",
     isPaused: false,
     silentAlerts: false,
-    githubRepo: "itsyebekhe/nahan",
+    githubRepo: "mahbodrahimi/Vortix-Panel",
     nameStrategy: "default",
     namePrefix: "Core",
     tgBotLang: "fa",
@@ -318,7 +319,7 @@ function isAuthorized(request, data) {
 
 function generateApiKey(name) {
     const id = crypto.randomUUID();
-    const raw = `nahan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    const raw = `vortix_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
     const key = raw;
     return {
         id,
@@ -332,15 +333,17 @@ function generateApiKey(name) {
 function trackUsage(uuid, bytes, env, ctx) {
     if (!sysUsageCache) sysUsageCache = { users: {} };
     if (!sysUsageCache.users) sysUsageCache.users = {};
-    if (!sysUsageCache.users[uuid])
+    if (!sysUsageCache.users[uuid]) {
         sysUsageCache.users[uuid] = {
             reqs: 0,
             dReqs: 0,
-            lastDay: new Date().toISOString().split("T")[0],
+            lastDay: new Date().toISOString().split('T')[0],
+            firstSeen: null,
         };
+    }
 
     let u = sysUsageCache.users[uuid];
-    let today = new Date().toISOString().split("T")[0];
+    let today = new Date().toISOString().split('T')[0];
     if (u.lastDay !== today) {
         u.dReqs = 0;
         u.lastDay = today;
@@ -348,9 +351,15 @@ function trackUsage(uuid, bytes, env, ctx) {
     if (u.reqs === undefined) u.reqs = 0;
     if (u.dReqs === undefined) u.dReqs = 0;
 
+    const isFirstRequest = (u.reqs === 0 && u.dReqs === 0);
+
     if (bytes === 0) {
         u.reqs += 1;
         u.dReqs += 1;
+    }
+
+    if (isFirstRequest && u.reqs > 0) {
+        u.firstSeen = Date.now();
     }
 
     const now = Date.now();
@@ -359,39 +368,42 @@ function trackUsage(uuid, bytes, env, ctx) {
         if (env && env.IOT_DB) {
             let changedConfig = false;
             if (sysConfig.users && sysConfig.users.length > 0) {
-                sysConfig.users.forEach((u) => {
-                    let uId = u.id.replace(/-/g, "").toLowerCase();
-                    let sysU = sysUsageCache.users[uId];
-                    if (!u.isPaused) {
+                sysConfig.users.forEach((user) => {
+                    let userId = user.id.replace(/-/g, "").toLowerCase();
+                    let sysU = sysUsageCache.users[userId];
+                    
+                    const hasFirstRequest = sysU && sysU.firstSeen !== null && sysU.firstSeen !== undefined;
+                    
+                    if (!user.isPaused && hasFirstRequest) {
                         let reason = null;
-                        if (u.expiryMs && Date.now() > u.expiryMs) {
-                            reason = `Expiration date reached (${new Date(u.expiryMs).toLocaleDateString()})`;
-                        } else if (
-                            sysU &&
-                            u.limitTotalReq &&
-                            sysU.reqs >= u.limitTotalReq
-                        ) {
+                        const effectiveExpiryMs = user.expiryMs && hasFirstRequest
+                            ? user.expiryMs
+                            : null;
+                            
+                        if (effectiveExpiryMs && Date.now() > effectiveExpiryMs) {
+                            reason = `Expiration date reached (${new Date(effectiveExpiryMs).toLocaleDateString()})`;
+                        } else if (sysU && user.limitTotalReq && sysU.reqs >= user.limitTotalReq) {
                             let usedGB = (sysU.reqs / 6000).toFixed(2);
-                            let limitGB = (u.limitTotalReq / 6000).toFixed(2);
+                            let limitGB = (user.limitTotalReq / 6000).toFixed(2);
                             reason = `Traffic limit exceeded (${usedGB}GB / ${limitGB}GB)`;
                         }
                         if (reason) {
-                            u.isPaused = true;
-                            u.disabledReason = reason;
-                            u.disabledAt = Date.now();
+                            user.isPaused = true;
+                            user.disabledReason = reason;
+                            user.disabledAt = Date.now();
                             changedConfig = true;
                             ctx?.waitUntil(
                                 logActivity(
                                     env,
                                     "User Auto-Disabled",
-                                    `User "${u.name}" (${u.id}) disabled: ${reason}`,
+                                    `User "${user.name}" (${user.id}) disabled: ${reason}`,
                                 ).catch(() => {}),
                             );
                             if (
                                 sysConfig.tgToken &&
                                 (sysConfig.tgAdminId || sysConfig.tgChatId)
                             ) {
-                                const tgMsg = `⚠️ <b>User Auto-Disabled</b>\n\n👤 <b>User:</b> ${u.name}\n🆔 <b>ID:</b> <code>${u.id}</code>\n📝 <b>Reason:</b> ${reason}`;
+                                const tgMsg = `⚠️ <b>User Auto-Disabled</b>\n\n👤 <b>User:</b> ${user.name}\n🆔 <b>ID:</b> <code>${user.id}</code>\n📝 <b>Reason:</b> ${reason}`;
                                 const notifyChatId =
                                     sysConfig.tgAdminId || sysConfig.tgChatId;
                                 ctx?.waitUntil(
@@ -498,9 +510,22 @@ export default {
 
             if (!isTelemetryStream) {
                 if (reqPath === routes.dash) {
-                    const dashboardUrl = env.DASHBOARD_URL || 'https://raw.githubusercontent.com/itsyebekhe/nahan/main/dashboard.html';
+                    const baseRepo = 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main';
+                    const pathSegments = reqPath.split('/');
+                    const lastSegment = pathSegments[pathSegments.length - 1];
+                    
+                    let dashboardUrl;
+                    if (lastSegment && lastSegment.startsWith('dash-') && lastSegment.endsWith('.html')) {
+                        dashboardUrl = `${baseRepo}/${lastSegment}`;
+                    } else {
+                        dashboardUrl = `${baseRepo}/dash-${CURRENT_VERSION}.html`;
+                    }
+                    
                     try {
-                        const resp = await fetch(dashboardUrl);
+                        let resp = await fetch(dashboardUrl);
+                        if (!resp.ok) {
+                            resp = await fetch(`${baseRepo}/dash.html`);
+                        }
                         let html = await resp.text();
                         html = html.replace(/__CURRENT_VERSION__/g, CURRENT_VERSION);
                         if (env.IOT_DB !== undefined) {
@@ -512,7 +537,16 @@ export default {
                             headers: { "Content-Type": "text/html;charset=utf-8" },
                         });
                     } catch (e) {
-                        return new Response('Failed to load dashboard', { status: 502 });
+                        try {
+                            const resp = await fetch(`${baseRepo}/dash.html`);
+                            let html = await resp.text();
+                            html = html.replace(/__CURRENT_VERSION__/g, CURRENT_VERSION);
+                            return new Response(html, {
+                                headers: { "Content-Type": "text/html;charset=utf-8" },
+                            });
+                        } catch (e2) {
+                            return new Response('Failed to load dashboard', { status: 502 });
+                        }
                     }
                 }
                 if (reqPath === routes.auth) {
@@ -635,11 +669,10 @@ export default {
 
                     if (isRealBrowser && !isCustomUaAllowed) {
                         if (isValidUser) {
-                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/itsyebekhe/nahan/main/subscription.html';
+                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/subscription.html';
                             try {
                                 const resp = await fetch(subscriptionUrl);
                                 let html = await resp.text();
-                                // Compute dynamic values
                                 const idClean = targetUser.id.replace(/-/g, '').toLowerCase();
                                 const sysU = sysUsageCache?.users?.[idClean] || { reqs: 0, dReqs: 0, lastDay: '' };
                                 const totalReqs = sysU.reqs || 0;
@@ -676,21 +709,18 @@ export default {
                                 cleanUrl.searchParams.delete('type'); cleanUrl.searchParams.delete('output'); cleanUrl.searchParams.delete('raw');
                                 const syncNormal = cleanUrl.href;
                                 const syncRaw = cleanUrl.href + (cleanUrl.href.includes('?') ? '&flag=a' : '?flag=a');
-                                // Total progress bar
                                 let totalProgress = '';
                                 if (limitTotal) {
                                     totalProgress = `<div class="w-full rounded-full h-1.5 mt-3 overflow-hidden progress-bar-bg"><div class="h-1.5 rounded-full" style="background: var(--accent); width: ${totalPercent}%;"></div></div><p class="text-[10px] text-muted text-right mt-1.5" data-i18n="used">${totalPercent}% Used</p>`;
                                 } else {
                                     totalProgress = '<p class="text-[10px] text-muted mt-2" data-i18n="unlimitedPlan">Unlimited Plan</p>';
                                 }
-                                // Daily progress bar
                                 let dailyProgress = '';
                                 if (limitDaily) {
                                     dailyProgress = `<div class="w-full rounded-full h-1.5 mt-3 overflow-hidden progress-bar-bg"><div class="h-1.5 rounded-full" style="background: var(--amber-text); width: ${dailyPercent}%;"></div></div><p class="text-[10px] text-muted text-right mt-1.5" data-i18n="used">${dailyPercent}% Used</p>`;
                                 } else {
                                     dailyProgress = '<p class="text-[10px] text-muted mt-2" data-i18n="noDailyLimit">No Daily Limit</p>';
                                 }
-                                // Replace placeholders
                                 html = html.replace(/__USER_NAME__/g, targetUser.name);
                                 html = html.replace(/__USER_ID__/g, targetUser.id);
                                 html = html.replace(/__STATUS_CODE__/g, statusCode);
@@ -781,13 +811,11 @@ export default {
                         );
                     }
 
-                    // Determine subscription format
                     let isClashYaml = false;
                     let isSingboxJson = false;
                     let isClashJson = false;
                     let isVJson = false;
 
-                    // If flag is explicitly set, we respect it
                     if (
                         flag === "clash" ||
                         flag === "yaml" ||
@@ -812,9 +840,7 @@ export default {
                     } else if (flag === "vjson" || flag === "v") {
                         isVJson = true;
                     } else if (flag === "base64") {
-                        // Skip auto-detect to default to base64 plain-text subscription format
                     } else if (flag === "a" || flag === "raw" || flag === "") {
-                        // Safe auto-detect for raw sync or no-flag links using target browser / client User-Agent
                         if (
                             ua.includes(getGamma()) ||
                             ua.includes("meta") ||
@@ -938,7 +964,7 @@ export default {
         try {
             await loadSysConfig(env, ctx);
             if (sysConfig.autoUpdate && sysConfig.cfAccountId && sysConfig.cfApiToken && sysConfig.cfWorkerName) {
-                const repo = (sysConfig.githubRepo || "itsyebekhe/nahan")
+                const repo = (sysConfig.githubRepo || "mahbodrahimi/Vortix-Panel")
                     .replace(/https?:\/\/github\.com\//, "")
                     .trim();
                 let remoteVer = null;
@@ -1042,7 +1068,6 @@ async function serveMaintenancePage(request, url) {
         return new Response("Not Found", { status: 404 });
     }
 }
-
 
 let sysConfigLoading = null;
 let sysUsageLoading = null;
@@ -1771,7 +1796,6 @@ async function handleStatsApi(request, env) {
             if (sysU.lastDay === todayDate) dailyTrafficReqs += sysU.dReqs || 0;
         });
 
-        
         let usageData = {};
         for (let [k, v] of uuidUsage.entries()) {
             usageData[k] = { ...v, connects: activeConns.get(k) || 0 };
@@ -1814,8 +1838,6 @@ async function handleStatsApi(request, env) {
     }
 }
 
-
-
 function cmpVersions(a, b) {
     const strip = (v) => String(v).replace(/^v/, "").trim();
     const pa = strip(a).split(".").map(Number);
@@ -1848,7 +1870,7 @@ async function handleUpdateApi(request, env, ctx) {
         const accountId = sysConfig.cfAccountId;
         const apiToken = sysConfig.cfApiToken;
         const workerName = sysConfig.cfWorkerName;
-        const repo = (sysConfig.githubRepo || "itsyebekhe/nahan")
+        const repo = (sysConfig.githubRepo || "mahbodrahimi/Vortix-Panel")
             .replace(/https?:\/\/github\.com\//, "")
             .trim();
 
@@ -2014,7 +2036,6 @@ async function handleUpdateApi(request, env, ctx) {
                     ).catch(() => {}),
                 );
 
-                // Update all nodes with main panel update!
                 if (sysConfig.linkedPanels && Array.isArray(sysConfig.linkedPanels)) {
                     for (const p of sysConfig.linkedPanels) {
                         if (p && p.url && p.apiKey) {
@@ -2258,7 +2279,6 @@ async function handleAuth(request, hostName, ctx, env) {
                     ),
                 );
 
-            // Store login signal for Telegram bot
             if (sysConfig.tgAdminId && env.IOT_DB) {
                 const loginSignal = {
                     name: sysConfig.name || hostName,
@@ -2277,7 +2297,6 @@ async function handleAuth(request, hostName, ctx, env) {
                 );
             }
 
-            // Notify hub panel if configured
             if (
                 sysConfig.hubPanelUrl &&
                 sysConfig.hubPanelUrl.trim() &&
@@ -2503,7 +2522,6 @@ async function handleConfigSync(request, env, ctx) {
                 "customPanelUrl"
             ].forEach((k) => delete slaveConfig[k]);
 
-            // Propagate config to slaveNodes
             if (nextConfig.slaveNodes && nextConfig.slaveNodes.trim().length > 0) {
                 let nodes = nextConfig.slaveNodes
                     .split(/[\r\n,;]+/)
@@ -2530,7 +2548,6 @@ async function handleConfigSync(request, env, ctx) {
                 });
             }
 
-            // Propagate config to linkedPanels
             if (nextConfig.linkedPanels && Array.isArray(nextConfig.linkedPanels)) {
                 nextConfig.linkedPanels.forEach((p) => {
                     if (p && p.url && p.apiKey) {
@@ -2608,7 +2625,6 @@ async function handleSyncPanel(request, env, ctx) {
                 { status: 400 },
             );
         }
-        // Verify the tgAdminId matches this panel's config
         const adminId = sysConfig.tgAdminId || sysConfig.tgChatId;
         if (!adminId || adminId.toString() !== data.tgAdminId.toString()) {
             return new Response(
@@ -2616,7 +2632,6 @@ async function handleSyncPanel(request, env, ctx) {
                 { status: 401 },
             );
         }
-        // Also verify a valid panelApiKey if one was provided
         if (data.panelApiKey && !isPanelApiKey(data.panelApiKey)) {
             return new Response(
                 JSON.stringify({ success: false, error: "Unauthorized" }),
@@ -2647,8 +2662,7 @@ async function handleSyncPanel(request, env, ctx) {
 
 const botI18n = {
     en: {
-        welcome:
-            "🤖 **Welcome to Nahan Gateway Bot**\nSelect your option below to manage your system:",
+        welcome: "🤖 **Welcome to Vortix Gateway Bot**\nSelect your option below to manage your system:",
         status: "System Status",
         users: "Subscribers",
         metrics: "Gateway Health",
@@ -2681,17 +2695,13 @@ const botI18n = {
         msg_enter_name: "Please send a name for the subscriber:",
         msg_added: "Sub added successfully! 🎉",
         msg_deleted: "Sub deleted successfully! 🗑️",
-        msg_panic:
-            "🚨 PANIC MODE ACTIVATED 🚨\nRoute randomized & System Paused.",
+        msg_panic: "🚨 PANIC MODE ACTIVATED 🚨\nRoute randomized & System Paused.",
         msg_invalid: "Invalid input. Please try again.",
-        msg_enter_limits:
-            "Enter limits format:\n`[totalReqs] [dailyReqs] [days_limit]`\n(Use 0 for unlimited)\n\nExample:\n`10000 500 30`",
+        msg_enter_limits: "Enter limits format:\n`[totalReqs] [dailyReqs] [days_limit]`\n(Use 0 for unlimited)\n\nExample:\n`10000 500 30`",
         msg_confirm_del: "⚠️ Are you sure you want to delete this subscriber?",
-        msg_confirm_panic:
-            "⚠️ Are you absolutely sure you want to trigger PANIC mode? This will randomize API routes and pause all connections!",
+        msg_confirm_panic: "⚠️ Are you absolutely sure you want to trigger PANIC mode? This will randomize API routes and pause all connections!",
         status_updated: "Status updated!",
-        access_denied:
-            "Access Denied. You are not authorized to manage this panel.",
+        access_denied: "Access Denied. You are not authorized to manage this panel.",
         dashboard: "Dashboard",
         search: "Search User",
         statistics: "Statistics",
@@ -2701,8 +2711,7 @@ const botI18n = {
         extend_expiry: "Extend Expiry",
         notes: "Notes",
         device_limit: "Config Limit",
-        msg_enter_search:
-            "🔍 Send a username, UUID, or subscription to search:",
+        msg_enter_search: "🔍 Send a username, UUID, or subscription to search:",
         msg_enter_notes: "📝 Send notes for this user:",
         msg_enter_extend_days: "📅 Enter number of days to extend expiration:",
         msg_traffic_reset: "Traffic has been reset successfully!",
@@ -2735,8 +2744,7 @@ const botI18n = {
         panel_remote: "🌐",
         msg_panel_selected: "Panel selected! ✅",
         msg_panel_error: "❌ Failed to connect to the selected panel.",
-        msg_panel_unreachable:
-            "⚠️ Panel is unreachable. Please check the configuration.",
+        msg_panel_unreachable: "⚠️ Panel is unreachable. Please check the configuration.",
         btn_sub_link: "Subscription Link",
         sub_link_sent: "Subscription link sent!",
         btn_update_usage: "Update Usage",
@@ -2795,8 +2803,7 @@ const botI18n = {
         tg_cf_usage: "CF Usage",
     },
     fa: {
-        welcome:
-            "🤖 **به ربات ترانزیت نهان خوش آمدید**\nجهت مدیریت سیستم نظارتی خود یکی از گزینه‌های زیر را انتخاب نمایید:",
+        welcome: "🤖 **به ربات دروازه ورتیکس خوش آمدید**\nجهت مدیریت سیستم نظارتی خود یکی از گزینه‌های زیر را انتخاب نمایید:",
         status: "وضعیت سیستم",
         users: "مدیریت مشترکین",
         metrics: "سلامت درگاه شبکه",
@@ -2831,11 +2838,9 @@ const botI18n = {
         msg_deleted: "مشترک با موفقیت حذف گردید!",
         msg_panic: "وضعیت اضطراری فعال شد\nمسیر تصادفی شد و سیستم متوقف گردید.",
         msg_invalid: "ورودی نامعتبر است. مجدداً تلاش نمایید.",
-        msg_enter_limits:
-            "فرمت ورودی محدودیت:\n`[کل] [روزانه] [مدت_روز]`\n(از 0 برای نامحدود استفاده کنید)\n\nمثال:\n`10000 500 30`",
+        msg_enter_limits: "فرمت ورودی محدودیت:\n`[کل] [روزانه] [مدت_روز]`\n(از 0 برای نامحدود استفاده کنید)\n\nمثال:\n`10000 500 30`",
         msg_confirm_del: "آیا از حذف این مشترک اطمینان کامل دارید؟",
-        msg_confirm_panic:
-            "آیا از فعال‌سازی وضعیت اضطراری اطمینان دارید؟ کل اتصالات متوقف و آدرس‌ها منقضی خواهند شد!",
+        msg_confirm_panic: "آیا از فعال‌سازی وضعیت اضطراری اطمینان دارید؟ کل اتصالات متوقف و آدرس‌ها منقضی خواهند شد!",
         status_updated: "وضعیت بروزرسانی شد!",
         access_denied: "دسترسی غیرمجاز. شما اجازه مدیریت این پنل را ندارید.",
         dashboard: "داشبورد",
@@ -2853,8 +2858,7 @@ const botI18n = {
         msg_traffic_reset: "ترافیک با موفقیت بازنشانی شد!",
         msg_expiry_extended: "انقضا به مدت {days} روز تمدید شد!",
         msg_no_disabled: "هیچ کاربر غیرفعالی یافت نشد.",
-        msg_enter_device_limit:
-            "محدودیت تعداد کانفیگ را وارد کنید (0 برای نامحدود):",
+        msg_enter_device_limit: "محدودیت تعداد کانفیگ را وارد کنید (0 برای نامحدود):",
         config_limit_updated: "محدودیت کانفیگ به‌روزرسانی شد!",
         stats_title: "آمار پنل",
         count_active: "فعال",
@@ -2881,8 +2885,7 @@ const botI18n = {
         panel_remote: "🌐",
         msg_panel_selected: "پنل انتخاب شد! ✅",
         msg_panel_error: "❌ اتصال به پنل انتخابی ناموفق بود.",
-        msg_panel_unreachable:
-            "⚠️ پنل در دسترس نیست. لطفاً پیکربندی را بررسی کنید.",
+        msg_panel_unreachable: "⚠️ پنل در دسترس نیست. لطفاً پیکربندی را بررسی کنید.",
         btn_sub_link: "لینک اشتراک",
         sub_link_sent: "لینک اشتراک ارسال شد!",
         btn_update_usage: "بروزرسانی مصرف",
@@ -3069,8 +3072,7 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         chat_id: chatId,
-                        text:
-                            "❌ *شما دسترسی به این ربات را ندارید.*\n\nیوزر آیدی شما جهت اضافه کردن به لیست ادمین ها: `" +
+                        text: "❌ *شما دسترسی به این ربات ندارید.*\n\nیوزر آیدی شما جهت اضافه کردن به لیست ادمین ها: `" +
                             (callerId || "Unknown") +
                             "`",
                         parse_mode: "Markdown",
@@ -3091,7 +3093,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
 
         const panels = getPanelsList();
 
-        // Read last login signal from D1 (set by handleAuth or handleSyncPanel)
         let lastLoginPanel = null;
         try {
             const stored = await d1Get(env, "tg_panel_login");
@@ -3106,7 +3107,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     (p) => !p.isLocal && p.host === lastLoginPanel.host,
                 );
                 if (found) return found;
-                // Remote panel not in linkedPanels — synthesize from login signal
                 return {
                     name: lastLoginPanel.name || lastLoginPanel.host,
                     host: lastLoginPanel.host,
@@ -3118,10 +3118,9 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     isLocal: false,
                 };
             }
-            return panels[0]; // default to local
+            return panels[0];
         };
 
-        // Custom sendOrEdit message helper
         const sendOrEdit = async (
             chatId,
             text,
@@ -3196,7 +3195,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                 ? `https://${hostName}/${encodeURI(sysConfig.apiRoute)}/dash`
                 : null;
             const subUrl = `https://${hostName}/${sysConfig.apiRoute}`;
-            /** @type {any} */
             const inline_keyboard = [];
             if (isAdmin) {
                 inline_keyboard.push([
@@ -3520,11 +3518,9 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     return new Response("OK", { status: 200 });
                 }
 
-                // Get active panel from last login signal
                 const activePanel = getActivePanel();
                 const isRemotePanel = activePanel && !activePanel.isLocal;
 
-                // Helper to fetch users for the active panel
                 const getPanelUsers = async () => {
                     if (isRemotePanel) {
                         const res = await fetchRemotePanelUsers(activePanel);
@@ -3533,7 +3529,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     return sysConfig.users || [];
                 };
 
-                // Clear step state on callback query
                 tgState[chatId] = null;
                 ctx?.waitUntil(
                     d1Put(env, "tg_bot_state", JSON.stringify(tgState)).catch(
@@ -5070,11 +5065,9 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
             const text = update.message.text.trim();
 
             if (isAuthorized) {
-                // Get active panel from last login signal
                 const activePanel = getActivePanel();
                 const isRemotePanel = activePanel && !activePanel.isLocal;
 
-                // Helper to fetch users for the active panel
                 const getPanelUsers = async () => {
                     if (isRemotePanel) {
                         const res = await fetchRemotePanelUsers(activePanel);
@@ -5083,7 +5076,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     return sysConfig.users || [];
                 };
 
-                // Handle /start command
                 if (text === "/start") {
                     tgState[chatId] = null;
                     ctx?.waitUntil(
@@ -6000,7 +5992,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     }
                 }
 
-                // Default message / fallback menu
                 const menu = getMainMenu(activePanel, isAuthorized);
                 await sendOrEdit(chatId, menu.text, menu.kb);
             } else {
@@ -6341,7 +6332,6 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                     .filter(Boolean);
             }
 
-            // Consistent hash based on user/profile ID to prevent session/IP splitting across assets on Cloudflare
             let startIndex = 0;
             if (pips.length > 1) {
                 let hash = 0;
@@ -6352,7 +6342,6 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                 startIndex = Math.abs(hash) % pips.length;
             }
 
-            // Attempt to connect with automatic failover to alternative proxy IPs
             let connected = false;
             for (
                 let attempt = 0;
@@ -6371,7 +6360,6 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                     connected = true;
                     break;
                 } catch (e) {
-                    // Try next fallback proxy IP in list
                 }
             }
             if (!connected) {
@@ -6587,24 +6575,19 @@ function getAllProfiles(targetSub = null) {
     return list;
 }
 
-// Returns the hostname of a linked panel URL (strips scheme/path/port). The
-// linkedPanels API system (cross-panel sync) is untouched; here we only read
-// its URLs as extra parallel node hosts, restoring 2.6 "parallel node" behavior.
 function linkedPanelHost(p) {
     let raw = p && typeof p === "object" ? p.url || "" : p || "";
     raw = String(raw).trim();
     if (!raw) return "";
-    raw = raw.replace(/^[a-zA-Z]+:\/\//, ""); // drop scheme
-    raw = raw.split("/")[0]; // drop path
-    raw = raw.split("@").pop(); // drop credentials
+    raw = raw.replace(/^[a-zA-Z]+:\/\//, "");
+    raw = raw.split("/")[0];
+    raw = raw.split("@").pop();
     if (raw.startsWith("[")) {
-        // [ipv6]:port
         return raw.slice(0, raw.indexOf("]") + 1);
     }
-    return raw.split(":")[0]; // drop port
+    return raw.split(":")[0];
 }
 
-// Combined parallel-node host list = slaveNodes (legacy) + linkedPanels URLs (2.9 API).
 function getGlobalNodeHosts() {
     let hosts = [];
     if (sysConfig.slaveNodes)
@@ -6932,7 +6915,6 @@ function getConfigName(
     } else if (strategy === "ip") {
         return ip || "unknown";
     } else {
-        // "default"
         return `${typeLab}-Core-${port}${cleanName}`;
     }
 }
@@ -6997,31 +6979,24 @@ function getEffectivePips(p) {
 }
 
 // ─── Upstream VLESS URI Parser ───────────────────────────────────────
-// Parses a VLESS URI like:
-//   vless://uuid@server:port?type=ws&security=tls&sni=example.com&path=/ws#Name
-// into a structured object usable by Sing-Box, Clash, and V2Ray builders.
 function parseVlessUri(uri) {
     if (!uri || typeof uri !== "string") return null;
     uri = uri.trim();
     if (!uri.startsWith("vless://")) return null;
     try {
-        // Remove the scheme
-        let rest = uri.slice(8); // after "vless://"
-        // Split fragment (#name)
+        let rest = uri.slice(8);
         let fragment = "";
         let hashIdx = rest.indexOf("#");
         if (hashIdx !== -1) {
             fragment = decodeURIComponent(rest.slice(hashIdx + 1));
             rest = rest.slice(0, hashIdx);
         }
-        // Split query string (?params)
         let queryStr = "";
         let qIdx = rest.indexOf("?");
         if (qIdx !== -1) {
             queryStr = rest.slice(qIdx + 1);
             rest = rest.slice(0, qIdx);
         }
-        // Parse query params
         let params = {};
         if (queryStr) {
             queryStr.split("&").forEach((pair) => {
@@ -7029,13 +7004,11 @@ function parseVlessUri(uri) {
                 if (k) params[decodeURIComponent(k)] = decodeURIComponent(v || "");
             });
         }
-        // Parse uuid@server:port
         let atIdx = rest.indexOf("@");
         if (atIdx === -1) return null;
         let uuid = rest.slice(0, atIdx);
         let hostPort = rest.slice(atIdx + 1);
         let server, port;
-        // Handle IPv6 [addr]:port
         if (hostPort.startsWith("[")) {
             let bracketEnd = hostPort.indexOf("]");
             server = hostPort.slice(1, bracketEnd);
@@ -7070,7 +7043,6 @@ function parseVlessUri(uri) {
     }
 }
 
-// Convert parsed VLESS URI to a Sing-Box outbound object
 function upstreamToSingboxOb(parsed) {
     if (!parsed) return null;
     let ob = {
@@ -7105,7 +7077,6 @@ function upstreamToSingboxOb(parsed) {
     return ob;
 }
 
-// Convert parsed VLESS URI to a Clash/Mihomo proxy object (YAML-compatible)
 function upstreamToClashProxy(parsed) {
     if (!parsed) return null;
     let proxy = {
@@ -7136,7 +7107,6 @@ function upstreamToClashProxy(parsed) {
     return proxy;
 }
 
-// Convert parsed VLESS URI to a V2Ray JSON outbound object
 function upstreamToV2RayOb(parsed) {
     if (!parsed) return null;
     let ob = {
@@ -7200,7 +7170,6 @@ async function buildUriProfile(
     ];
     await preloadIpFlags(profiles, allHostNames);
 
-    // Add fake configs
     let fakeNames = getFakeConfigNames(targetSub);
     fakeNames.forEach((name) => {
         lines.push(
@@ -7372,7 +7341,6 @@ async function buildUriProfile(
             });
         });
     });
-    // ─── Upstream: prepend upstream URI ───
     let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
     if (parsedUpstream) {
         lines.unshift(parsedUpstream.raw);
@@ -7380,13 +7348,12 @@ async function buildUriProfile(
     return lines.join("\n");
 }
 
-
 let clashTemplate = null;
 let singboxTemplate = null;
 let VTemplate = null;
 
 async function fetchTemplates(env) {
-    const repo = sysConfig.githubRepo || "itsyebekhe/nahan";
+    const repo = sysConfig.githubRepo || "mahbodrahimi/Vortix-Panel";
     if (!clashTemplate) {
         try {
             let res = await fetch(`https://raw.githubusercontent.com/${repo}/main/clash.yml`);
@@ -7406,7 +7373,6 @@ async function fetchTemplates(env) {
         } catch(e) {}
     }
 }
-
 
 function getCustomRouting() {
     let cr = sysConfig.customRouting || "";
@@ -7440,15 +7406,14 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
     let reqPath = encodeURI(`/${sysConfig.apiRoute}`);
     let proxies = [];
     let proxyNames = [];
-    let nameCounts = {}; // Track proxy names for deduplication
+    let nameCounts = {};
     let profiles = getAllProfiles(targetSub);
     let allHostNames = [
         ...new Set(profiles.flatMap((p) => getProfileHostNames(hostName, p))),
     ];
     await preloadIpFlags(profiles, allHostNames);
-    let proxyGeoInfo = new Map(); // proxyName -> {country, flag}
+    let proxyGeoInfo = new Map();
 
-    // Add fake configs
     let fakeNames = getFakeConfigNames(targetSub);
     let fakeRefs = [];
     fakeNames.forEach((name) => {
@@ -7691,7 +7656,6 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
         });
     });
 
-    // ─── Upstream chaining: add upstream proxy to YAML ───
     let parsedUpstreamYaml = parseVlessUri(sysConfig.upstreamUri);
     let upstreamNameYaml = "";
     if (parsedUpstreamYaml) {
@@ -7716,8 +7680,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
         proxyNames.unshift(`"${upProxy.name}"`);
     }
 
-    // Build per-country groups from geo info
-    let countryGroups = new Map(); // "country" -> {flag, proxies[]}
+    let countryGroups = new Map();
     proxyGeoInfo.forEach((geo, name) => {
         let key = geo.country || "Unknown";
         if (!countryGroups.has(key)) {
@@ -7729,7 +7692,6 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
         a[0].localeCompare(b[0]),
     );
 
-    // Build proxy-groups YAML
     let groupsYaml =
         "proxy-groups:\n" +
         '  - name: "✅ Selector"\n' +
@@ -7741,7 +7703,6 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
         groupsYaml += `      - "${info.flag} ${country}"\n`;
     });
 
-    // Fastest — url-test with ALL proxies
     groupsYaml +=
         '\n  - name: "⚡ Fastest"\n' +
         "    type: url-test\n" +
@@ -7753,14 +7714,14 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
         groupsYaml += `      - ${n}\n`;
     });
 
-    // Manual — select with ALL proxies
     groupsYaml +=
-        '\n  - name: "🖐 Manual"\n' + "    type: select\n" + "    proxies:\n";
+        '\n  - name: "🖐 Manual"\n' +
+        "    type: select\n" +
+        "    proxies:\n";
     proxyNames.forEach((n) => {
         groupsYaml += `      - ${n}\n`;
     });
 
-    // Per-country url-test groups
     sortedCountries.forEach(([country, info]) => {
         groupsYaml +=
             `\n  - name: "${info.flag} ${country}"\n` +
@@ -7871,7 +7832,6 @@ ${rulesOutput}
 `;
 }
 
-// Obfuscated string keys to prevent Cloudflare scanners block on vpn/proxy keywords
 const k_pxs = "pro" + "xies";
 const k_px_gps = "pro" + "xy-gro" + "ups";
 const k_obds = "out" + "bounds";
@@ -7901,14 +7861,13 @@ async function buildClashJsonProfile(
         ...new Set(profiles.flatMap((p) => getProfileHostNames(hostName, p))),
     ];
     await preloadIpFlags(profiles, allHostNames);
-    let proxyGeoInfo = new Map(); // proxyName -> {country, flag}
+    let proxyGeoInfo = new Map();
     let reqPath = encodeURI(`/${sysConfig.apiRoute}`);
 
     let proxiesArr = [];
     let dynamicTags = [];
     let nameCounts = {};
 
-    // Add fake configs
     let fakeNames = getFakeConfigNames(targetSub);
     let fakeRefs = [];
     fakeNames.forEach((name) => {
@@ -8269,7 +8228,6 @@ async function buildClashJsonProfile(
 
     if (dynamicTags.length === 0) { dynamicTags.push("direct"); }
 
-    // ─── Upstream chaining: add upstream proxy ───
     let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
     let upstreamProxyName = "";
     if (parsedUpstream) {
@@ -8279,8 +8237,7 @@ async function buildClashJsonProfile(
         dynamicTags.unshift(upstreamProxyName);
     }
 
-    // Build per-country groups from geo info
-    let countryGroups = new Map(); // "country" -> {flag, proxies[]}
+    let countryGroups = new Map();
     proxyGeoInfo.forEach((geo, name) => {
         let key = geo.country || "Unknown";
         if (!countryGroups.has(key)) {
@@ -8292,7 +8249,6 @@ async function buildClashJsonProfile(
         a[0].localeCompare(b[0]),
     );
 
-    // Build proxy-groups JSON
     let groupsJson = [
         {
             name: "✅ Selector",
@@ -8450,7 +8406,6 @@ async function buildClashJsonProfile(
     };
 }
 
-
 async function buildVJsonProfile(hostName, targetSub = null, allowInsecure = false, env = null) {
     let ports = sysConfig.socketPorts ? sysConfig.socketPorts.split(",").map(s => s.trim()).filter(Boolean) : ["443"];
     let profiles = getAllProfiles(targetSub);
@@ -8542,11 +8497,9 @@ async function buildVJsonProfile(hostName, targetSub = null, allowInsecure = fal
         });
     });
 
-    // ─── Upstream chaining: add upstream outbound ───
     let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
     if (parsedUpstream) {
         let upstreamOb = upstreamToV2RayOb(parsedUpstream);
-        // Add proxySettings to chain through upstream
         outboundsArr.forEach(ob => {
             if (ob.protocol !== "direct" && ob.protocol !== "freedom" && ob.protocol !== "blackhole") {
                 ob.proxySettings = { tag: upstreamOb.tag, transportSeries: [] };
@@ -8570,7 +8523,6 @@ async function buildVJsonProfile(hostName, targetSub = null, allowInsecure = fal
         if (newOutbounds.length === 0) newOutbounds = outboundsArr;
         tpl.outbounds = newOutbounds;
         
-        // Inject Custom Routing
         let cr = getCustomRouting();
         if (cr.domains.length > 0) {
             tpl.route.rules.unshift({ domain: cr.domains, outbound: "direct" });
@@ -8591,6 +8543,7 @@ async function buildVJsonProfile(hostName, targetSub = null, allowInsecure = fal
     }
     return { outbounds: outboundsArr };
 }
+
 async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure = false, env = null) {
     let ports = sysConfig.socketPorts
         ? sysConfig.socketPorts
@@ -8603,14 +8556,13 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
         ...new Set(profiles.flatMap((p) => getProfileHostNames(hostName, p))),
     ];
     await preloadIpFlags(profiles, allHostNames);
-    let proxyGeoInfo = new Map(); // proxyName -> {country, flag}
+    let proxyGeoInfo = new Map();
     let reqPath = encodeURI(`/${sysConfig.apiRoute}`);
 
     let outboundsArr = [];
     let dynamicTags = [];
     let nameCounts = {};
 
-    // Add fake configs
     let fakeNames = getFakeConfigNames(targetSub);
     let fakeRefs = [];
     fakeNames.forEach((name) => {
@@ -8956,19 +8908,16 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
         dynamicTags.push("direct");
     }
 
-    // ─── Upstream chaining: add detour to all outbounds ───
     let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
     let upstreamTag = "";
     if (parsedUpstream) {
         let upstreamOb = upstreamToSingboxOb(parsedUpstream);
         upstreamTag = upstreamOb.tag;
-        // Add detour to all generated outbounds so they chain through upstream
         outboundsArr.forEach(ob => {
             if (ob.type !== "direct" && ob.type !== "block" && ob.type !== "dns") {
                 ob.detour = upstreamTag;
             }
         });
-        // Insert upstream as first outbound
         outboundsArr.unshift(upstreamOb);
     }
     
@@ -8996,7 +8945,6 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
         tpl.outbounds = newOutbounds;
         return tpl;
     }
-    // Fallback if template fails
     return {
         log: { disabled: false, level: "warn", timestamp: true },
         dns: { servers: [], rules: [] },
