@@ -8750,4 +8750,480 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
     const getUniqueName = (baseName) => {
         if (!nameCounts[baseName]) {
             nameCounts[baseName] = 1;
-           
+            return baseName;
+        }
+        let counter = nameCounts[baseName];
+        let newName = `${baseName}-${counter}`;
+        while (nameCounts[newName]) {
+            counter++;
+            newName = `${baseName}-${counter}`;
+        }
+        nameCounts[baseName] = counter + 1;
+        nameCounts[newName] = 1;
+        return newName;
+    };
+
+    profiles.forEach((p) => {
+        let pips = getEffectivePips(p);
+        let effectiveMode = p.userMode || sysConfig.mode;
+        let effectivePorts = p.userPorts
+            ? p.userPorts
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+            : ports;
+        let maxCfg = p.maxConfigs || null;
+
+        let configIndex = 0;
+        let profileHostNames = getProfileHostNames(hostName, p);
+
+        profileHostNames.forEach((hName) => {
+            let ipEntries = getCleanIpsWithNames(hName, p.cleanIp);
+            let allIps = ipEntries.map((e) => e.ip);
+            let ips = calcEffectiveIps(
+                allIps,
+                maxCfg,
+                effectiveMode,
+                effectivePorts,
+                pips.length
+            );
+            let ipNameMap = {};
+            ipEntries.forEach((e) => {
+                ipNameMap[e.ip] = e.name;
+            });
+            effectivePorts.forEach((port) => {
+                let sec = getTransportParams(port);
+                let isTLS = sec === "tls";
+                ips.forEach((ip) => {
+                    let _pips = pips.length > 0 ? pips : [null];
+                    _pips.forEach((selectedProxyIp) => {
+                    let ipName = ipNameMap[ip] || "";
+
+                    if (effectiveMode === "alpha" || effectiveMode === "both") {
+                        let tag = getConfigName(
+                            "alpha",
+                            p.name,
+                            port,
+                            hName,
+                            ip,
+                            selectedProxyIp,
+                            configIndex,
+                            ipName,
+                        );
+                        tag = getUniqueName(tag);
+                        dynamicTags.push(tag);
+                        proxyGeoInfo.set(
+                            tag,
+                            getGeoInfo(selectedProxyIp || ip),
+                        );
+
+                        let configUuid = generateConfigUuid(p.id, configIndex);
+                        registerConfigEntry(
+                            configUuid,
+                            p.id,
+                            selectedProxyIp || "",
+                        );
+
+                        let ob = {
+                            type: "vless",
+                            tag: tag,
+                            server: ip,
+                            server_port: parseInt(port),
+                            uuid: configUuid,
+                            packet_encoding: "xudp",
+                            network: "ws",
+                            tls: {
+                                enabled: isTLS,
+                                server_name: hName,
+                                insecure: allowInsecure,
+                                utls: {
+                                    enabled: true,
+                                    fingerprint: sysConfig.agent || "randomized",
+                                },
+                            },
+                            transport: {
+                                type: "ws",
+                                path: "/" + btoa(JSON.stringify({
+                                    junk: Array.from(
+                                        { length: 11 },
+                                        () =>
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                Math.floor(Math.random() * 62)
+                                            ],
+                                    ).join(""),
+                                    protocol: "vl",
+                                    mode: "proxyip",
+                                    panelIPs: [],
+                                })),
+                                headers: {
+                                    Host: hName,
+                                },
+                            },
+                        };
+                        if (sysConfig.enableOpt2) {
+                            ob.tls.ech = { enabled: true };
+                        }
+                        outboundsArr.push(ob);
+                    }
+
+                    if (effectiveMode === "beta" || effectiveMode === "both") {
+                        let tag = getConfigName(
+                            "beta",
+                            p.name,
+                            port,
+                            hName,
+                            ip,
+                            selectedProxyIp,
+                            configIndex,
+                            ipName,
+                        );
+                        tag = getUniqueName(tag);
+                        dynamicTags.push(tag);
+                        proxyGeoInfo.set(
+                            tag,
+                            getGeoInfo(selectedProxyIp || ip),
+                        );
+
+                        let ob = {
+                            type: "trojan",
+                            tag: tag,
+                            server: ip,
+                            server_port: parseInt(port),
+                            password: p.id,
+                            packet_encoding: "xudp",
+                            network: "ws",
+                            tls: {
+                                enabled: isTLS,
+                                server_name: hName,
+                                insecure: allowInsecure,
+                                utls: {
+                                    enabled: true,
+                                    fingerprint: sysConfig.agent || "randomized",
+                                },
+                            },
+                            transport: {
+                                type: "ws",
+                                path: "/" + btoa(JSON.stringify({
+                                    junk: Array.from(
+                                        { length: 11 },
+                                        () =>
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                Math.floor(Math.random() * 62)
+                                            ],
+                                    ).join(""),
+                                    protocol: "tr",
+                                    mode: "proxyip",
+                                    panelIPs: [],
+                                    relayIdx: configIndex,
+                                })),
+                                headers: {
+                                    Host: hName,
+                                },
+                            },
+                        };
+                        if (sysConfig.enableOpt2) {
+                            ob.tls.ech = { enabled: true };
+                        }
+                        outboundsArr.push(ob);
+                    }
+                    configIndex++;
+                    if (sysConfig.enableDirectConfigs && pips.length > 0 && selectedProxyIp === pips[0]) {
+                        if (effectiveMode === "alpha" || effectiveMode === "both") {
+                            let tag = getUniqueName(
+                                getConfigName(
+                                    "alpha",
+                                    p.name,
+                                    port,
+                                    hName,
+                                    ip,
+                                    null,
+                                    configIndex,
+                                    ipName,
+                                    true
+                                ),
+                            );
+                            dynamicTags.push(tag);
+                            proxyGeoInfo.set(tag, getGeoInfo(ip));
+                            let configUuid = generateConfigUuid(p.id, configIndex);
+                            registerConfigEntry(configUuid, p.id, "");
+                            let ob = {
+                                type: "vless",
+                                tag: tag,
+                                server: ip,
+                                server_port: parseInt(port),
+                                uuid: configUuid,
+                                packet_encoding: "xudp",
+                                network: "ws",
+                                tls: {
+                                    enabled: isTLS,
+                                    server_name: hName,
+                                    insecure: allowInsecure,
+                                    utls: {
+                                        enabled: true,
+                                        fingerprint: sysConfig.agent || "randomized",
+                                    },
+                                },
+                                transport: {
+                                    type: "ws",
+                                    path: "/" + btoa(JSON.stringify({
+                                        junk: Array.from(
+                                            { length: 11 },
+                                            () =>
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                    Math.floor(Math.random() * 62)
+                                                ],
+                                        ).join(""),
+                                        protocol: "vl",
+                                        mode: "proxyip",
+                                        panelIPs: [],
+                                    })),
+                                    headers: {
+                                        Host: hName,
+                                    },
+                                },
+                            };
+                            if (sysConfig.enableOpt2) {
+                                ob.tls.ech = { enabled: true };
+                            }
+                            outboundsArr.push(ob);
+                        }
+                        if (effectiveMode === "beta" || effectiveMode === "both") {
+                            let tag = getUniqueName(
+                                getConfigName(
+                                    "beta",
+                                    p.name,
+                                    port,
+                                    hName,
+                                    ip,
+                                    null,
+                                    configIndex,
+                                    ipName,
+                                    true
+                                ),
+                            );
+                            dynamicTags.push(tag);
+                            proxyGeoInfo.set(tag, getGeoInfo(ip));
+                            let ob = {
+                                type: "trojan",
+                                tag: tag,
+                                server: ip,
+                                server_port: parseInt(port),
+                                password: p.id,
+                                packet_encoding: "xudp",
+                                network: "ws",
+                                tls: {
+                                    enabled: isTLS,
+                                    server_name: hName,
+                                    insecure: allowInsecure,
+                                    utls: {
+                                        enabled: true,
+                                        fingerprint: sysConfig.agent || "randomized",
+                                    },
+                                },
+                                transport: {
+                                    type: "ws",
+                                    path: "/" + btoa(JSON.stringify({
+                                        junk: Array.from(
+                                            { length: 11 },
+                                            () =>
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                    Math.floor(Math.random() * 62)
+                                                ],
+                                        ).join(""),
+                                        protocol: "tr",
+                                        mode: "proxyip",
+                                        panelIPs: [],
+                                        relayIdx: configIndex,
+                                    })),
+                                    headers: {
+                                        Host: hName,
+                                    },
+                                },
+                            };
+                            if (sysConfig.enableOpt2) {
+                                ob.tls.ech = { enabled: true };
+                            }
+                            outboundsArr.push(ob);
+                        }
+                        configIndex++;
+                    }
+                    });
+                });
+            });
+        });
+    });
+
+    if (dynamicTags.length === 0) {
+        dynamicTags.push("direct");
+    }
+
+    let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
+    if (parsedUpstream) {
+        let upstreamOb = upstreamToSingboxOb(parsedUpstream);
+        outboundsArr.unshift(upstreamOb);
+        dynamicTags.unshift("🔗 Upstream");
+    }
+
+    let countryGroups = new Map();
+    proxyGeoInfo.forEach((geo, name) => {
+        let key = geo.country || "Unknown";
+        if (!countryGroups.has(key)) {
+            countryGroups.set(key, { flag: geo.flag || "🌐", tags: [] });
+        }
+        countryGroups.get(key).tags.push(name);
+    });
+    let sortedCountries = Array.from(countryGroups.entries()).sort((a, b) =>
+        a[0].localeCompare(b[0]),
+    );
+
+    let outboundTags = dynamicTags.map(t => `"${t}"`).join(",");
+
+    let routeRules = [];
+    let cr = getCustomRouting();
+    cr.domains.forEach(d => {
+        routeRules.push(`{ "domain": "${d}", "outbound": "direct" }`);
+        routeRules.push(`{ "domain_suffix": "${d}", "outbound": "direct" }`);
+    });
+    cr.ips.forEach(ip => {
+        routeRules.push(`{ "ip_cidr": "${ip}", "outbound": "direct" }`);
+    });
+    cr.geoips.forEach(g => {
+        routeRules.push(`{ "geoip": "${g}", "outbound": "direct" }`);
+    });
+    cr.geosites.forEach(g => {
+        routeRules.push(`{ "geosite": "${g}", "outbound": "direct" }`);
+    });
+
+    let singboxConfig = {
+        log: {
+            level: "warning",
+        },
+        dns: {
+            servers: [
+                {
+                    tag: "dns-direct",
+                    address: "1.1.1.1",
+                    detour: "direct",
+                },
+                {
+                    tag: "dns-proxy",
+                    address: "1.1.1.1",
+                    detour: "✅ Selector",
+                },
+            ],
+            rules: [
+                {
+                    outbound: "any",
+                    server: "dns-direct",
+                },
+            ],
+            final: "dns-direct",
+        },
+        inbounds: [
+            {
+                type: "mixed",
+                tag: "mixed-in",
+                listen: "0.0.0.0",
+                listen_port: 7890,
+                set_system_proxy: false,
+            },
+            {
+                type: "tun",
+                tag: "tun-in",
+                stack: "mixed",
+                mtu: 9000,
+                auto_route: true,
+                strict_route: true,
+                endpoint_independent_nat: true,
+                gso: false,
+            },
+        ],
+        outbounds: outboundsArr,
+        route: {
+            rules: [
+                {
+                    domain_suffix: "ir",
+                    outbound: "direct",
+                },
+                {
+                    domain_keyword: "gov.ir",
+                    outbound: "direct",
+                },
+                {
+                    geoip: "ir",
+                    outbound: "direct",
+                },
+                ...routeRules,
+                {
+                    protocol: "dns",
+                    outbound: "dns-out",
+                },
+            ],
+            final: "✅ Selector",
+            auto_detect_interface: true,
+            override_android_vpn: true,
+            default_interface: "en0",
+            auto_detect_interface: true,
+        },
+    };
+
+    // Build selector groups
+    let selectorOutbounds = [
+        "⚡ Fastest",
+        "🖐 Manual",
+        ...sortedCountries.map(([c, info]) => `${info.flag} ${c}`),
+    ];
+    let selectorGroup = {
+        type: "selector",
+        tag: "✅ Selector",
+        outbounds: selectorOutbounds,
+    };
+    let urlTestGroup = {
+        type: "urltest",
+        tag: "⚡ Fastest",
+        outbounds: dynamicTags,
+        url: "https://www.gstatic.com/generate_204",
+        interval: "30s",
+        tolerance: 50,
+    };
+    let manualGroup = {
+        type: "selector",
+        tag: "🖐 Manual",
+        outbounds: dynamicTags,
+    };
+    let countryGroupsOut = sortedCountries.map(([country, info]) => ({
+        type: "urltest",
+        tag: `${info.flag} ${country}`,
+        outbounds: info.tags,
+        url: "https://www.gstatic.com/generate_204",
+        interval: "30s",
+        tolerance: 50,
+    }));
+
+    singboxConfig.outbounds.unshift(selectorGroup);
+    singboxConfig.outbounds.unshift(urlTestGroup);
+    singboxConfig.outbounds.unshift(manualGroup);
+    countryGroupsOut.reverse().forEach(g => {
+        singboxConfig.outbounds.unshift(g);
+    });
+
+    if (!singboxConfig.dns) {
+        singboxConfig.dns = {
+            servers: [
+                {
+                    tag: "dns-direct",
+                    address: "1.1.1.1",
+                    detour: "direct",
+                },
+                {
+                    tag: "dns-proxy",
+                    address: "1.1.1.1",
+                    detour: "✅ Selector",
+                },
+            ],
+            final: "dns-direct",
+        };
+    }
+
+    return singboxConfig;
+}
