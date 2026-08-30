@@ -6,7 +6,7 @@ import { connect } from "cloudflare:sockets";
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.0.2";
+const CURRENT_VERSION = "3.0.3";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
