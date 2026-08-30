@@ -6,7 +6,8 @@ import { connect } from "cloudflare:sockets";
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.0.2";
+const CURRENT_VERSION = "3.0.3";
+const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
 const getBeta = () => String.fromCharCode(116, 114, 111, 106, 97, 110);
@@ -1857,7 +1858,7 @@ async function handleUpdateApi(request, env, ctx) {
             return new Response("405", { status: 405 });
         const data = await request.json();
         const deployKey = extractAuthKey(request, data);
-        if (deployKey !== sysConfig.masterKey) {
+        if (deployKey !== sysConfig.masterKey && !isPanelApiKey(deployKey)) {
             return new Response(
                 JSON.stringify({ success: false, error: "Unauthorized" }),
                 {
@@ -1870,45 +1871,20 @@ async function handleUpdateApi(request, env, ctx) {
         const accountId = sysConfig.cfAccountId;
         const apiToken = sysConfig.cfApiToken;
         const workerName = sysConfig.cfWorkerName;
-        const repo = (sysConfig.githubRepo || "mahbodrahimi/Vortix-Panel")
-            .replace(/https?:\/\/github\.com\//, "")
-            .trim();
 
         if (data.action === "check") {
             let remoteVer = null;
             try {
-                const res = await fetch(
-                    `https://raw.githubusercontent.com/${repo}/main/version`,
-                );
+                const res = await fetch(UPDATE_URL);
                 if (res.ok) {
-                    const txt = (await res.text()).trim();
-                    if (txt && txt.length <= 15) remoteVer = txt;
+                    const code = await res.text();
+                    const match = code.match(
+                        /const\s+CURRENT_VERSION\s*=\s*["']([^"']+)["']/,
+                    );
+                    if (match) remoteVer = match[1];
                 }
             } catch (e) {}
-            if (!remoteVer) {
-                try {
-                    let res = await fetch(
-                        `https://raw.githubusercontent.com/${repo}/main/_worker.encode.js`,
-                    );
-                    if (!res.ok) {
-                        res = await fetch(
-                            `https://raw.githubusercontent.com/${repo}/main/_worker.encoded.js`,
-                        );
-                        if (!res.ok) {
-                            res = await fetch(
-                                `https://raw.githubusercontent.com/${repo}/main/_worker.js`,
-                            );
-                        }
-                    }
-                    if (res.ok) {
-                        const code = await res.text();
-                        const match = code.match(
-                            /const\s+CURRENT_VERSION\s*=\s*["']([^"']+)["']/,
-                        );
-                        if (match) remoteVer = match[1];
-                    }
-                } catch (e) {}
-            }
+            
             if (!remoteVer) {
                 return new Response(
                     JSON.stringify({
@@ -1950,23 +1926,11 @@ async function handleUpdateApi(request, env, ctx) {
             }
 
             let newVersion = data.version || null;
-
             let finalCodeToDeploy = data.code;
+
             if (!finalCodeToDeploy) {
                 try {
-                    let res = await fetch(
-                        `https://raw.githubusercontent.com/${repo}/main/_worker.encode.js`,
-                    );
-                    if (!res.ok) {
-                        res = await fetch(
-                            `https://raw.githubusercontent.com/${repo}/main/_worker.encoded.js`,
-                        );
-                        if (!res.ok) {
-                            res = await fetch(
-                                `https://raw.githubusercontent.com/${repo}/main/_worker.js`,
-                            );
-                        }
-                    }
+                    let res = await fetch(UPDATE_URL);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     finalCodeToDeploy = await res.text();
                 } catch (e) {
@@ -1989,15 +1953,6 @@ async function handleUpdateApi(request, env, ctx) {
                 );
                 if (versionMatch) {
                     newVersion = versionMatch[1];
-                } else {
-                    try {
-                        const vRes = await fetch(
-                            `https://raw.githubusercontent.com/${repo}/main/version`,
-                        );
-                        if (vRes.ok) {
-                            newVersion = (await vRes.text()).trim();
-                        }
-                    } catch (e) {}
                 }
             }
             if (!newVersion) newVersion = CURRENT_VERSION;
@@ -2032,7 +1987,7 @@ async function handleUpdateApi(request, env, ctx) {
                     logActivity(
                         env,
                         "Panel Updated",
-                        `v${CURRENT_VERSION} → v${newVersion} (encoded)`,
+                        `v${CURRENT_VERSION} → v${newVersion}`,
                     ).catch(() => {}),
                 );
 
@@ -2075,7 +2030,7 @@ async function handleUpdateApi(request, env, ctx) {
                     sysConfig.tgToken &&
                     (sysConfig.tgAdminId || sysConfig.tgChatId)
                 ) {
-                    const tgMsg = `🔄 <b>Panel Updated</b>\n\n📦 v${CURRENT_VERSION} → v${newVersion}\n🌐 <b>Format:</b> encoded`;
+                    const tgMsg = `🔄 <b>Panel Updated</b>\n\n📦 v${CURRENT_VERSION} → v${newVersion}`;
                     const notifyChatId =
                         sysConfig.tgAdminId || sysConfig.tgChatId;
                     ctx?.waitUntil(
@@ -2521,32 +2476,6 @@ async function handleConfigSync(request, env, ctx) {
                 "githubRepo",
                 "customPanelUrl"
             ].forEach((k) => delete slaveConfig[k]);
-
-            if (nextConfig.slaveNodes && nextConfig.slaveNodes.trim().length > 0) {
-                let nodes = nextConfig.slaveNodes
-                    .split(/[\r\n,;]+/)
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                let syncKey = nextConfig.syncApiKey || "";
-                nodes.forEach((node) => {
-                    if (node !== currentHost) {
-                        ctx?.waitUntil(
-                            fetch(
-                                `https://${node}/${encodeURI(nextConfig.apiRoute)}/api/sync`,
-                                {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        key: syncKey,
-                                        config: slaveConfig,
-                                        fromMaster: true,
-                                    }),
-                                },
-                            ).catch(() => {}),
-                        );
-                    }
-                });
-            }
 
             if (nextConfig.linkedPanels && Array.isArray(nextConfig.linkedPanels)) {
                 nextConfig.linkedPanels.forEach((p) => {
