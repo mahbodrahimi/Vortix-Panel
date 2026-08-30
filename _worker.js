@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.0.3
+ * Version: 3.1.0
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.0.3";
+const CURRENT_VERSION = "3.1.0";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -96,6 +96,158 @@ let sysConfigCacheTime = 0;
 let sysUsageCacheTime = 0;
 let backupIpCache = null;
 let backupIpCacheTime = 0;
+
+// =============================================
+// HEALTH CHECK FUNCTIONS
+// =============================================
+
+async function checkIPHealth(ip, port = 443, timeout = 5000) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        const startTime = Date.now();
+        
+        const res = await fetch(`https://${ip}:${port}/`, {
+            method: 'HEAD',
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Vortix-Health-Check/1.0' }
+        });
+        
+        clearTimeout(timeoutId);
+        const latency = Date.now() - startTime;
+        
+        return {
+            healthy: res.status < 500,
+            latency: latency,
+            status: res.status,
+            error: null
+        };
+    } catch (err) {
+        return {
+            healthy: false,
+            latency: null,
+            status: null,
+            error: err.message
+        };
+    }
+}
+
+async function checkWorkerToServerHealth(ip, port = 443, timeout = 5000) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        const startTime = Date.now();
+        
+        const res = await fetch(`https://${ip}:${port}/`, {
+            method: 'HEAD',
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Vortix-Worker-Health/1.0' }
+        });
+        
+        clearTimeout(timeoutId);
+        const latency = Date.now() - startTime;
+        
+        return {
+            healthy: res.status < 500,
+            latency: latency,
+            status: res.status,
+            error: null
+        };
+    } catch (err) {
+        return {
+            healthy: false,
+            latency: null,
+            status: null,
+            error: err.message
+        };
+    }
+}
+
+async function batchHealthCheck(ips, checkFunction, port = 443, timeout = 5000) {
+    const results = [];
+    const healthyIps = [];
+    const unhealthyIps = [];
+    
+    for (const ip of ips) {
+        const result = await checkFunction(ip, port, timeout);
+        results.push({ ip, ...result });
+        if (result.healthy) {
+            healthyIps.push(ip);
+        } else {
+            unhealthyIps.push(ip);
+        }
+    }
+    
+    return {
+        results,
+        healthyIps,
+        unhealthyIps,
+        allHealthy: unhealthyIps.length === 0,
+        summary: {
+            total: ips.length,
+            healthy: healthyIps.length,
+            unhealthy: unhealthyIps.length
+        }
+    };
+}
+
+async function getWorkingProxyIPs(proxyList, checkFunction, port = 443, timeout = 5000) {
+    if (!proxyList || proxyList.length === 0) return [];
+    
+    const healthResults = await batchHealthCheck(proxyList, checkFunction, port, timeout);
+    
+    // If all are healthy, return all
+    if (healthResults.allHealthy) {
+        return proxyList;
+    }
+    
+    // Replace only unhealthy IPs with new ones from fallback
+    const unhealthyIps = healthResults.unhealthyIps;
+    const healthyIps = healthResults.healthyIps;
+    
+    // If more than 50% are unhealthy, try to get new IPs
+    if (unhealthyIps.length > proxyList.length / 2) {
+        const fallbackIps = await fetchFallbackProxyIPs(unhealthyIps.length);
+        const fallbackResults = await batchHealthCheck(fallbackIps, checkFunction, port, timeout);
+        const workingFallback = fallbackResults.healthyIps;
+        
+        // Replace unhealthy with working fallback IPs
+        const newProxyList = [...healthyIps];
+        for (const ip of workingFallback) {
+            if (newProxyList.length < proxyList.length) {
+                newProxyList.push(ip);
+            }
+        }
+        
+        // If still not enough, keep some unhealthy ones (better than nothing)
+        while (newProxyList.length < proxyList.length && unhealthyIps.length > 0) {
+            newProxyList.push(unhealthyIps.pop());
+        }
+        
+        return newProxyList;
+    }
+    
+    // Just remove unhealthy ones if few
+    return healthyIps;
+}
+
+async function fetchFallbackProxyIPs(count) {
+    try {
+        const res = await fetch(`https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all&limit=${count * 2}`);
+        const data = await res.text();
+        const ips = data.split('\n')
+            .filter(line => line.trim())
+            .slice(0, count);
+        return ips;
+    } catch (e) {
+        // Return some default IPs if API fails
+        const defaultIps = [
+            '1.1.1.1', '8.8.8.8', '9.9.9.9',
+            '208.67.222.222', '208.67.220.220'
+        ];
+        return defaultIps.slice(0, count);
+    }
+}
 
 async function deployWorkerToCloudflare(accountId, apiToken, workerName, code) {
     let currentBindings = [];
@@ -480,6 +632,7 @@ export default {
                 stats: `/${encodeURI(sysConfig.apiRoute)}/api/stats`,
                 update: `/${encodeURI(sysConfig.apiRoute)}/api/update`,
                 apiKeys: `/${encodeURI(sysConfig.apiRoute)}/api/keys`,
+                healthCheck: `/${encodeURI(sysConfig.apiRoute)}/api/health/check`,
             };
 
             const isSyncRoute = reqPath.endsWith("/api/sync");
@@ -491,6 +644,8 @@ export default {
                 reqPath === routes.update || reqPath.endsWith("/api/update");
             const isApiKeysRoute =
                 reqPath === routes.apiKeys || reqPath.endsWith("/api/keys");
+            const isHealthCheckRoute =
+                reqPath === routes.healthCheck || reqPath.endsWith("/api/health/check");
             const isAuthorizedRoute =
                 reqPath === routes.data ||
                 reqPath === routes.dash ||
@@ -503,13 +658,17 @@ export default {
                 isUsersRoute ||
                 isStatsRoute ||
                 isUpdateRoute ||
-                isApiKeysRoute;
+                isApiKeysRoute ||
+                isHealthCheckRoute;
 
             if (!isTelemetryStream && !isAuthorizedRoute) {
                 return serveMaintenancePage(request, url);
             }
 
             if (!isTelemetryStream) {
+                if (isHealthCheckRoute) {
+                    return await handleHealthCheck(request, env);
+                }
                 if (reqPath === routes.dash) {
                     const baseRepo = 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main';
                     const pathSegments = reqPath.split('/');
@@ -978,13 +1137,7 @@ export default {
                 
                 if (remoteVer && cmpVersions(CURRENT_VERSION, remoteVer) < 0) {
                     try {
-                        let res = await fetch(`https://raw.githubusercontent.com/${repo}/main/_worker.encode.js`);
-                        if (!res.ok) {
-                            res = await fetch(`https://raw.githubusercontent.com/${repo}/main/_worker.encoded.js`);
-                            if (!res.ok) {
-                                res = await fetch(`https://raw.githubusercontent.com/${repo}/main/_worker.js`);
-                            }
-                        }
+                        let res = await fetch(UPDATE_URL);
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         let latestCode = await res.text();
                         const deployRes = await deployWorkerToCloudflare(
@@ -995,7 +1148,7 @@ export default {
                         );
                         const deployResult = await deployRes.json();
                         if (deployResult.success) {
-                            await logActivity(env, "Auto-Update Success", `Auto-updated to v${remoteVer} (encoded)`);
+                            await logActivity(env, "Auto-Update Success", `Auto-updated to v${remoteVer}`);
                             if (sysConfig.linkedPanels && Array.isArray(sysConfig.linkedPanels)) {
                                 for (const p of sysConfig.linkedPanels) {
                                     if (p && p.url && p.apiKey) {
@@ -1032,6 +1185,98 @@ export default {
         } catch (e) {}
     }
 };
+
+// =============================================
+// HEALTH CHECK HANDLER
+// =============================================
+
+async function handleHealthCheck(request, env) {
+    try {
+        const url = new URL(request.url);
+        const type = url.searchParams.get("type") || "source";
+        const count = parseInt(url.searchParams.get("count")) || 5;
+        const port = parseInt(url.searchParams.get("port")) || 443;
+        const timeout = parseInt(url.searchParams.get("timeout")) || 5000;
+
+        const authKey = extractAuthKey(request, null);
+        if (authKey !== sysConfig.masterKey && !isPanelApiKey(authKey)) {
+            return new Response(
+                JSON.stringify({ success: false, error: "Unauthorized" }),
+                { status: 401, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        let ips = [];
+        if (type === "source") {
+            ips = sysConfig.cleanIps
+                ? sysConfig.cleanIps.split(/[\r\n,;]+/)
+                    .map(s => {
+                        const parts = s.trim().split("#");
+                        return parts[0] ? parts[0].trim() : null;
+                    })
+                    .filter(Boolean)
+                : [];
+        } else if (type === "destination") {
+            ips = sysConfig.backupRelay
+                ? sysConfig.backupRelay.split(/[\r\n,;]+/)
+                    .map(s => {
+                        const parts = s.trim().split("#");
+                        return parts[0] ? parts[0].trim() : null;
+                    })
+                    .filter(Boolean)
+                : [];
+        } else {
+            return new Response(
+                JSON.stringify({ success: false, error: "Invalid type. Use 'source' or 'destination'" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        if (ips.length === 0) {
+            return new Response(
+                JSON.stringify({ 
+                    success: false, 
+                    error: "No IPs found in configuration",
+                    ips: [],
+                    healthy: [],
+                    unhealthy: []
+                }),
+                { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Limit count
+        const targetIps = ips.slice(0, Math.min(count, ips.length));
+        
+        // Determine which health check function to use
+        const checkFunction = type === "source" ? checkIPHealth : checkWorkerToServerHealth;
+        
+        // Perform health check
+        const healthResults = await batchHealthCheck(targetIps, checkFunction, port, timeout);
+        
+        // Get working IPs with fallback
+        const workingIps = await getWorkingProxyIPs(targetIps, checkFunction, port, timeout);
+        
+        return new Response(
+            JSON.stringify({
+                success: true,
+                type: type,
+                total: targetIps.length,
+                healthResults: healthResults.results,
+                healthyIps: healthResults.healthyIps,
+                unhealthyIps: healthResults.unhealthyIps,
+                workingIps: workingIps,
+                summary: healthResults.summary
+            }),
+            { headers: { "Content-Type": "application/json" } }
+        );
+    } catch (e) {
+        return new Response(
+            JSON.stringify({ success: false, error: e.message }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+    }
+}
 
 async function serveMaintenancePage(request, url) {
     let fakeList = sysConfig.maintenanceHost
@@ -8547,18 +8792,15 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                 ipNameMap[e.ip] = e.name;
             });
             effectivePorts.forEach((port) => {
-                let sec = getTransportParams(port) === "tls";
+                let sec = getTransportParams(port);
+                let isTLS = sec === "tls";
                 ips.forEach((ip) => {
-                    let isVless =
-                        effectiveMode === "alpha" || effectiveMode === "both";
-                    let isTrojan =
-                        effectiveMode === "beta" || effectiveMode === "both";
                     let _pips = pips.length > 0 ? pips : [null];
                     _pips.forEach((selectedProxyIp) => {
                     let ipName = ipNameMap[ip] || "";
 
-                    if (isVless) {
-                        let tagStr = getConfigName(
+                    if (effectiveMode === "alpha" || effectiveMode === "both") {
+                        let tag = getConfigName(
                             "alpha",
                             p.name,
                             port,
@@ -8568,23 +8810,12 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                             configIndex,
                             ipName,
                         );
-                        tagStr = getUniqueName(tagStr);
-                        dynamicTags.push(tagStr);
-
-                        let randomJunk = Array.from(
-                            { length: 11 },
-                            () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
-                        ).join("");
-                        let payloadVl = {
-                            junk: randomJunk,
-                            protocol: "vl",
-                            mode: "proxyip",
-                            panelIPs: [],
-                        };
-                        let pathStrVl = "/" + btoa(JSON.stringify(payloadVl));
+                        tag = getUniqueName(tag);
+                        dynamicTags.push(tag);
+                        proxyGeoInfo.set(
+                            tag,
+                            getGeoInfo(selectedProxyIp || ip),
+                        );
 
                         let configUuid = generateConfigUuid(p.id, configIndex);
                         registerConfigEntry(
@@ -8594,40 +8825,49 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                         );
 
                         let ob = {
-                            type: k_vl_mode,
-                            tag: tagStr,
+                            type: "vless",
+                            tag: tag,
                             server: ip,
                             server_port: parseInt(port),
-                            tcp_fast_open: sysConfig.enableOpt1 || false,
                             uuid: configUuid,
                             packet_encoding: "xudp",
-                            network: "tcp",
+                            network: "ws",
                             tls: {
-                                enabled: sec,
+                                enabled: isTLS,
                                 server_name: hName,
                                 insecure: allowInsecure,
-                                alpn: ["http/1.1"],
                                 utls: {
                                     enabled: true,
-                                    fingerprint: "randomized",
+                                    fingerprint: sysConfig.agent || "randomized",
                                 },
                             },
                             transport: {
                                 type: "ws",
-                                path: pathStrVl,
-                                max_early_data: 2560,
-                                early_data_header_name:
-                                    "Sec-WebSocket-Protocol",
+                                path: "/" + btoa(JSON.stringify({
+                                    junk: Array.from(
+                                        { length: 11 },
+                                        () =>
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                Math.floor(Math.random() * 62)
+                                            ],
+                                    ).join(""),
+                                    protocol: "vl",
+                                    mode: "proxyip",
+                                    panelIPs: [],
+                                })),
                                 headers: {
                                     Host: hName,
                                 },
                             },
                         };
+                        if (sysConfig.enableOpt2) {
+                            ob.tls.ech = { enabled: true };
+                        }
                         outboundsArr.push(ob);
                     }
 
-                    if (isTrojan) {
-                        let tagStr = getConfigName(
+                    if (effectiveMode === "beta" || effectiveMode === "both") {
+                        let tag = getConfigName(
                             "beta",
                             p.name,
                             port,
@@ -8637,67 +8877,59 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                             configIndex,
                             ipName,
                         );
-                        tagStr = getUniqueName(tagStr);
-                        dynamicTags.push(tagStr);
-
-                        let randomJunk = Array.from(
-                            { length: 11 },
-                            () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
-                        ).join("");
-                        let payloadTr = {
-                            junk: randomJunk,
-                            protocol: "tr",
-                            mode: "proxyip",
-                            panelIPs: [],
-                            relayIdx: configIndex,
-                        };
-                        let pathStrTr = "/" + btoa(JSON.stringify(payloadTr));
-
-                        let configUuid2 = generateConfigUuid(p.id, configIndex);
-                        registerConfigEntry(
-                            configUuid2,
-                            p.id,
-                            selectedProxyIp || "",
+                        tag = getUniqueName(tag);
+                        dynamicTags.push(tag);
+                        proxyGeoInfo.set(
+                            tag,
+                            getGeoInfo(selectedProxyIp || ip),
                         );
 
                         let ob = {
-                            type: k_tr_mode,
-                            tag: tagStr,
+                            type: "trojan",
+                            tag: tag,
                             server: ip,
                             server_port: parseInt(port),
-                            tcp_fast_open: sysConfig.enableOpt1 || false,
                             password: p.id,
-                            network: "tcp",
+                            packet_encoding: "xudp",
+                            network: "ws",
                             tls: {
-                                enabled: sec,
+                                enabled: isTLS,
                                 server_name: hName,
                                 insecure: allowInsecure,
-                                alpn: ["http/1.1"],
                                 utls: {
                                     enabled: true,
-                                    fingerprint: "randomized",
+                                    fingerprint: sysConfig.agent || "randomized",
                                 },
                             },
                             transport: {
                                 type: "ws",
-                                path: pathStrTr,
-                                max_early_data: 2560,
-                                early_data_header_name:
-                                    "Sec-WebSocket-Protocol",
+                                path: "/" + btoa(JSON.stringify({
+                                    junk: Array.from(
+                                        { length: 11 },
+                                        () =>
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                Math.floor(Math.random() * 62)
+                                            ],
+                                    ).join(""),
+                                    protocol: "tr",
+                                    mode: "proxyip",
+                                    panelIPs: [],
+                                    relayIdx: configIndex,
+                                })),
                                 headers: {
                                     Host: hName,
                                 },
                             },
                         };
+                        if (sysConfig.enableOpt2) {
+                            ob.tls.ech = { enabled: true };
+                        }
                         outboundsArr.push(ob);
                     }
                     configIndex++;
                     if (sysConfig.enableDirectConfigs && pips.length > 0 && selectedProxyIp === pips[0]) {
-                        if (isVless) {
-                            let tagStr = getUniqueName(
+                        if (effectiveMode === "alpha" || effectiveMode === "both") {
+                            let tag = getUniqueName(
                                 getConfigName(
                                     "alpha",
                                     p.name,
@@ -8706,63 +8938,57 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                     ip,
                                     null,
                                     configIndex,
-                                    ipName, true
+                                    ipName,
+                                    true
                                 ),
                             );
-                            dynamicTags.push(tagStr);
-                            proxyGeoInfo.set(tagStr, getGeoInfo(ip));
-                            let randomJunk = Array.from(
-                                { length: 11 },
-                                () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
-                            ).join("");
-                            let payloadVl = {
-                                junk: randomJunk,
-                                protocol: "vl",
-                                mode: "proxyip",
-                                panelIPs: [],
-                            };
-                            let pathStrVl =
-                                "/" + btoa(JSON.stringify(payloadVl));
-                            let configUuid = generateConfigUuid(
-                                p.id,
-                                configIndex,
-                            );
+                            dynamicTags.push(tag);
+                            proxyGeoInfo.set(tag, getGeoInfo(ip));
+                            let configUuid = generateConfigUuid(p.id, configIndex);
                             registerConfigEntry(configUuid, p.id, "");
                             let ob = {
-                                type: k_vl_mode,
-                                tag: tagStr,
+                                type: "vless",
+                                tag: tag,
                                 server: ip,
                                 server_port: parseInt(port),
-                                tcp_fast_open: sysConfig.enableOpt1 || false,
                                 uuid: configUuid,
                                 packet_encoding: "xudp",
-                                network: "tcp",
+                                network: "ws",
                                 tls: {
-                                    enabled: sec,
+                                    enabled: isTLS,
                                     server_name: hName,
                                     insecure: allowInsecure,
-                                    alpn: ["http/1.1"],
                                     utls: {
                                         enabled: true,
-                                        fingerprint: "randomized",
+                                        fingerprint: sysConfig.agent || "randomized",
                                     },
                                 },
                                 transport: {
                                     type: "ws",
-                                    path: pathStrVl,
-                                    max_early_data: 2560,
-                                    early_data_header_name:
-                                        "Sec-WebSocket-Protocol",
-                                    headers: { Host: hName },
+                                    path: "/" + btoa(JSON.stringify({
+                                        junk: Array.from(
+                                            { length: 11 },
+                                            () =>
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                    Math.floor(Math.random() * 62)
+                                                ],
+                                        ).join(""),
+                                        protocol: "vl",
+                                        mode: "proxyip",
+                                        panelIPs: [],
+                                    })),
+                                    headers: {
+                                        Host: hName,
+                                    },
                                 },
                             };
+                            if (sysConfig.enableOpt2) {
+                                ob.tls.ech = { enabled: true };
+                            }
                             outboundsArr.push(ob);
                         }
-                        if (isTrojan) {
-                            let tagStr = getUniqueName(
+                        if (effectiveMode === "beta" || effectiveMode === "both") {
+                            let tag = getUniqueName(
                                 getConfigName(
                                     "beta",
                                     p.name,
@@ -8771,58 +8997,52 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                     ip,
                                     null,
                                     configIndex,
-                                    ipName, true
+                                    ipName,
+                                    true
                                 ),
                             );
-                            dynamicTags.push(tagStr);
-                            proxyGeoInfo.set(tagStr, getGeoInfo(ip));
-                            let randomJunk = Array.from(
-                                { length: 11 },
-                                () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
-                            ).join("");
-                            let payloadTr = {
-                                junk: randomJunk,
-                                protocol: "tr",
-                                mode: "proxyip",
-                                panelIPs: [],
-                                relayIdx: configIndex,
-                            };
-                            let pathStrTr =
-                                "/" + btoa(JSON.stringify(payloadTr));
-                            let configUuid2 = generateConfigUuid(
-                                p.id,
-                                configIndex,
-                            );
+                            dynamicTags.push(tag);
+                            proxyGeoInfo.set(tag, getGeoInfo(ip));
                             let ob = {
-                                type: k_tr_mode,
-                                tag: tagStr,
+                                type: "trojan",
+                                tag: tag,
                                 server: ip,
                                 server_port: parseInt(port),
-                                tcp_fast_open: sysConfig.enableOpt1 || false,
                                 password: p.id,
-                                network: "tcp",
+                                packet_encoding: "xudp",
+                                network: "ws",
                                 tls: {
-                                    enabled: sec,
+                                    enabled: isTLS,
                                     server_name: hName,
                                     insecure: allowInsecure,
-                                    alpn: ["http/1.1"],
                                     utls: {
                                         enabled: true,
-                                        fingerprint: "randomized",
+                                        fingerprint: sysConfig.agent || "randomized",
                                     },
                                 },
                                 transport: {
                                     type: "ws",
-                                    path: pathStrTr,
-                                    max_early_data: 2560,
-                                    early_data_header_name:
-                                        "Sec-WebSocket-Protocol",
-                                    headers: { Host: hName },
+                                    path: "/" + btoa(JSON.stringify({
+                                        junk: Array.from(
+                                            { length: 11 },
+                                            () =>
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
+                                                    Math.floor(Math.random() * 62)
+                                                ],
+                                        ).join(""),
+                                        protocol: "tr",
+                                        mode: "proxyip",
+                                        panelIPs: [],
+                                        relayIdx: configIndex,
+                                    })),
+                                    headers: {
+                                        Host: hName,
+                                    },
                                 },
                             };
+                            if (sysConfig.enableOpt2) {
+                                ob.tls.ech = { enabled: true };
+                            }
                             outboundsArr.push(ob);
                         }
                         configIndex++;
@@ -8838,47 +9058,172 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
     }
 
     let parsedUpstream = parseVlessUri(sysConfig.upstreamUri);
-    let upstreamTag = "";
     if (parsedUpstream) {
         let upstreamOb = upstreamToSingboxOb(parsedUpstream);
-        upstreamTag = upstreamOb.tag;
-        outboundsArr.forEach(ob => {
-            if (ob.type !== "direct" && ob.type !== "block" && ob.type !== "dns") {
-                ob.detour = upstreamTag;
-            }
-        });
         outboundsArr.unshift(upstreamOb);
+        dynamicTags.unshift("🔗 Upstream");
     }
-    
-    await fetchTemplates(env);
-    if (singboxTemplate) {
-        let tpl = JSON.parse(JSON.stringify(singboxTemplate));
-        let newOutbounds = [];
-        let allProxies = outboundsArr.map(o => o.tag);
-        
-        for (let ob of tpl.outbounds) {
-            if (ob === "__OUTBOUNDS__") {
-                newOutbounds.push(...outboundsArr);
-            } else if (ob.outbounds && ob.outbounds.includes("{all_proxies}")) {
-                let obCpy = { ...ob };
-                obCpy.outbounds = [];
-                for (let tag of ob.outbounds) {
-                    if (tag === "{all_proxies}") obCpy.outbounds.push(...allProxies);
-                    else obCpy.outbounds.push(tag);
-                }
-                newOutbounds.push(obCpy);
-            } else {
-                newOutbounds.push(ob);
-            }
+
+    let countryGroups = new Map();
+    proxyGeoInfo.forEach((geo, name) => {
+        let key = geo.country || "Unknown";
+        if (!countryGroups.has(key)) {
+            countryGroups.set(key, { flag: geo.flag || "🌐", tags: [] });
         }
-        tpl.outbounds = newOutbounds;
-        return tpl;
-    }
-    return {
-        log: { disabled: false, level: "warn", timestamp: true },
-        dns: { servers: [], rules: [] },
-        inbounds: [],
-        [k_obds]: outboundsArr,
-        route: { rules: [] }
+        countryGroups.get(key).tags.push(name);
+    });
+    let sortedCountries = Array.from(countryGroups.entries()).sort((a, b) =>
+        a[0].localeCompare(b[0]),
+    );
+
+    let outboundTags = dynamicTags.map(t => `"${t}"`).join(",");
+
+    let routeRules = [];
+    let cr = getCustomRouting();
+    cr.domains.forEach(d => {
+        routeRules.push(`{ "domain": "${d}", "outbound": "direct" }`);
+        routeRules.push(`{ "domain_suffix": "${d}", "outbound": "direct" }`);
+    });
+    cr.ips.forEach(ip => {
+        routeRules.push(`{ "ip_cidr": "${ip}", "outbound": "direct" }`);
+    });
+    cr.geoips.forEach(g => {
+        routeRules.push(`{ "geoip": "${g}", "outbound": "direct" }`);
+    });
+    cr.geosites.forEach(g => {
+        routeRules.push(`{ "geosite": "${g}", "outbound": "direct" }`);
+    });
+
+    let singboxConfig = {
+        log: {
+            level: "warning",
+        },
+        dns: {
+            servers: [
+                {
+                    tag: "dns-direct",
+                    address: "1.1.1.1",
+                    detour: "direct",
+                },
+                {
+                    tag: "dns-proxy",
+                    address: "1.1.1.1",
+                    detour: "✅ Selector",
+                },
+            ],
+            rules: [
+                {
+                    outbound: "any",
+                    server: "dns-direct",
+                },
+            ],
+            final: "dns-direct",
+        },
+        inbounds: [
+            {
+                type: "mixed",
+                tag: "mixed-in",
+                listen: "0.0.0.0",
+                listen_port: 7890,
+                set_system_proxy: false,
+            },
+            {
+                type: "tun",
+                tag: "tun-in",
+                stack: "mixed",
+                mtu: 9000,
+                auto_route: true,
+                strict_route: true,
+                endpoint_independent_nat: true,
+                gso: false,
+            },
+        ],
+        outbounds: outboundsArr,
+        route: {
+            rules: [
+                {
+                    domain_suffix: "ir",
+                    outbound: "direct",
+                },
+                {
+                    domain_keyword: "gov.ir",
+                    outbound: "direct",
+                },
+                {
+                    geoip: "ir",
+                    outbound: "direct",
+                },
+                ...routeRules,
+                {
+                    protocol: "dns",
+                    outbound: "dns-out",
+                },
+            ],
+            final: "✅ Selector",
+            auto_detect_interface: true,
+            override_android_vpn: true,
+            default_interface: "en0",
+            auto_detect_interface: true,
+        },
     };
+
+    // Build selector groups
+    let selectorOutbounds = [
+        "⚡ Fastest",
+        "🖐 Manual",
+        ...sortedCountries.map(([c, info]) => `${info.flag} ${c}`),
+    ];
+    let selectorGroup = {
+        type: "selector",
+        tag: "✅ Selector",
+        outbounds: selectorOutbounds,
+    };
+    let urlTestGroup = {
+        type: "urltest",
+        tag: "⚡ Fastest",
+        outbounds: dynamicTags,
+        url: "https://www.gstatic.com/generate_204",
+        interval: "30s",
+        tolerance: 50,
+    };
+    let manualGroup = {
+        type: "selector",
+        tag: "🖐 Manual",
+        outbounds: dynamicTags,
+    };
+    let countryGroupsOut = sortedCountries.map(([country, info]) => ({
+        type: "urltest",
+        tag: `${info.flag} ${country}`,
+        outbounds: info.tags,
+        url: "https://www.gstatic.com/generate_204",
+        interval: "30s",
+        tolerance: 50,
+    }));
+
+    singboxConfig.outbounds.unshift(selectorGroup);
+    singboxConfig.outbounds.unshift(urlTestGroup);
+    singboxConfig.outbounds.unshift(manualGroup);
+    countryGroupsOut.reverse().forEach(g => {
+        singboxConfig.outbounds.unshift(g);
+    });
+
+    if (!singboxConfig.dns) {
+        singboxConfig.dns = {
+            servers: [
+                {
+                    tag: "dns-direct",
+                    address: "1.1.1.1",
+                    detour: "direct",
+                },
+                {
+                    tag: "dns-proxy",
+                    address: "1.1.1.1",
+                    detour: "✅ Selector",
+                },
+            ],
+            final: "dns-direct",
+        };
+    }
+
+    return singboxConfig;
 }
