@@ -6,7 +6,7 @@ import { connect } from "cloudflare:sockets";
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.0";
+const CURRENT_VERSION = "3.1.1";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
 const getBeta = () => String.fromCharCode(116, 114, 111, 106, 97, 110);
