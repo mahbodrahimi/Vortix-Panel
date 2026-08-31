@@ -2,12 +2,13 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.0
+ * Version: 3.1.1
  * Advanced subscription and proxy management system
  */
 
 const CURRENT_VERSION = "3.1.1";
-const UPDATE_URL= "https://github.com/mahbodrahimi/Vortix-Panel/raw/refs/heads/main/_worker.js"
+const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
+
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
 const getBeta = () => String.fromCharCode(116, 114, 111, 106, 97, 110);
 const getGamma = () => String.fromCharCode(99, 108, 97, 115, 104);
@@ -73,7 +74,6 @@ const SYSTEM_DEFAULTS = {
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true },
     ],
-    version: CURRENT_VERSION, // اضافه شد
 };
 
 let sysConfig = { ...SYSTEM_DEFAULTS };
@@ -1095,7 +1095,6 @@ export default {
             return new Response(null, { status: 404 });
         }
     },
-    // حذف scheduled
 };
 
 // =============================================
@@ -1264,16 +1263,6 @@ async function loadSysConfig(env, ctx = null) {
                             ...(stored ? JSON.parse(stored) : null),
                         };
                         sysConfigCacheTime = Date.now();
-                        // همگام‌سازی نسخه
-                        if (sysConfig.version !== CURRENT_VERSION) {
-                            sysConfig.version = CURRENT_VERSION;
-                            const promise = cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
-                            if (ctx && typeof ctx.waitUntil === "function") {
-                                ctx.waitUntil(promise.catch(() => {}));
-                            } else {
-                                promise.catch(() => {});
-                            }
-                        }
                         if (migrateSlaveNodesToLinkedPanels(sysConfig)) {
                             const promise = cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
                             if (ctx && typeof ctx.waitUntil === "function") {
@@ -2143,10 +2132,6 @@ async function handleUpdateApi(request, env, ctx) {
             const deployResult = await deployRes.json();
 
             if (deployResult.success) {
-                // ذخیره نسخه جدید در دیتابیس
-                sysConfig.version = newVersion;
-                await cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
-
                 ctx?.waitUntil(
                     logActivity(
                         env,
@@ -2754,7 +2739,6 @@ async function handleSyncPanel(request, env, ctx) {
 }
 
 const botI18n = {
-    // (همان کد قبلی - بدون تغییر)
     en: {
         welcome: "🤖 **Welcome to Vortix Gateway Bot**\nSelect your option below to manage your system:",
         status: "System Status",
@@ -3142,7 +3126,6 @@ async function remotePanelResetTraffic(panel, userId) {
 }
 
 async function handleTelegramWebhook(request, env, hostName, ctx) {
-    // (همان کد قبلی - بدون تغییر)
     try {
         const update = await request.json();
         const tgApi = `https://api.telegram.org/bot${sysConfig.tgToken}`;
@@ -3594,7 +3577,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
         };
 
         if (update.callback_query) {
-            // (همان کد قبلی - بدون تغییر)
             const cb = update.callback_query;
             const chatId = cb.message?.chat?.id;
             const messageId = cb.message?.message_id;
@@ -3656,97 +3638,801 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     const menu = getMainMenu(activePanel, isAuthorized);
                     await sendOrEdit(chatId, menu.text, menu.kb, messageId);
                 } else if (data === "sys_metrics") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data.startsWith("subs_list:")) {
-                    // ... (همان)
+                    const page = parseInt(data.replace("subs_list:", "")) || 0;
+                    const panelUsers = await getPanelUsers();
+                    if (panelUsers === null && isRemotePanel) {
+                        await sendOrEdit(chatId, t("msg_panel_error"), {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: t("btn_main_menu"),
+                                        callback_data: "main_menu",
+                                    },
+                                ],
+                            ],
+                        });
+                    } else {
+                        const list = getSubsList(page, panelUsers);
+                        await sendOrEdit(chatId, list.text, list.kb, messageId);
+                    }
                 } else if (data.startsWith("sub_detail:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_detail:", "");
+                    const panelUsers = await getPanelUsers();
+                    if (panelUsers === null && isRemotePanel) {
+                        await sendOrEdit(chatId, t("msg_panel_error"), {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: t("btn_main_menu"),
+                                        callback_data: "main_menu",
+                                    },
+                                ],
+                            ],
+                        });
+                    } else {
+                        const detail = getSubDetail(uuid, panelUsers);
+                        await sendOrEdit(
+                            chatId,
+                            detail.text,
+                            detail.kb,
+                            messageId,
+                        );
+                    }
                 } else if (data.startsWith("sub_toggle:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_toggle:", "");
+                    if (isRemotePanel) {
+                        await remotePanelToggleUser(activePanel, uuid);
+                    } else if (sysConfig.users) {
+                        const u = sysConfig.users.find(
+                            (usr) => usr.id === uuid,
+                        );
+                        if (u) {
+                            u.isPaused = !u.isPaused;
+                            await cachedD1Put(
+                                env,
+                                "sys_config",
+                                JSON.stringify(sysConfig),
+                            );
+                        }
+                    }
+                    const panelUsers = await getPanelUsers();
+                    const detail = getSubDetail(uuid, panelUsers);
+                    await sendOrEdit(chatId, detail.text, detail.kb, messageId);
                 } else if (data.startsWith("sub_del_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_del_init:", "");
+                    const panelUsers = await getPanelUsers();
+                    const u = panelUsers?.find((usr) => usr.id === uuid);
+                    const name = u ? u.name : "";
+                    const text = `${t("msg_confirm_del")}\n\n👤 **${name}**`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `✅ ${t("btn_confirm")}`,
+                                    callback_data: `sub_del_confirm:${uuid}`,
+                                },
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_del_confirm:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_del_confirm:", "");
+                    if (isRemotePanel) {
+                        await remotePanelWriteAction(
+                            activePanel,
+                            "DELETE",
+                            uuid,
+                        );
+                    } else if (sysConfig.users) {
+                        sysConfig.users = sysConfig.users.filter(
+                            (usr) => usr.id !== uuid,
+                        );
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                    }
+                    const successText = `✅ ${t("msg_deleted")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: t("btn_back"),
+                                    callback_data: "subs_list:0",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, successText, kb, messageId);
                 } else if (data === "sub_add_init") {
-                    // ... (همان)
+                    tgState[chatId] = { step: "sub_add_name" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `➕ ${t("msg_enter_name")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: "subs_list:0",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_edit_name_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_edit_name_init:", "");
+                    tgState[chatId] = { step: `sub_edit_name:${uuid}` };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `✏️ ${t("msg_enter_name")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_edit_limits_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_edit_limits_init:", "");
+                    tgState[chatId] = { step: `sub_edit_limits:${uuid}` };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `⚙️ ${t("msg_enter_limits")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `♾️ Skip (Unlimited)`,
+                                    callback_data: `sub_unlimit_cb:${uuid}`,
+                                },
+                            ],
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_unlimit_cb:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_unlimit_cb:", "");
+                    if (isRemotePanel) {
+                        await remotePanelWriteAction(activePanel, "PUT", uuid, {
+                            key: activePanel.apiKey,
+                            trafficLimit: 0,
+                            dailyLimit: 0,
+                            expiryDays: 0,
+                        });
+                    } else if (sysConfig.users) {
+                        const u = sysConfig.users.find(
+                            (usr) => usr.id === uuid,
+                        );
+                        if (u) {
+                            u.limitTotalReq = null;
+                            u.limitDailyReq = null;
+                            u.expiryMs = null;
+                            await cachedD1Put(
+                                env,
+                                "sys_config",
+                                JSON.stringify(sysConfig),
+                            );
+                        }
+                    }
+                    const panelUsers = await getPanelUsers();
+                    const detail = getSubDetail(uuid, panelUsers);
+                    await sendOrEdit(chatId, detail.text, detail.kb, messageId);
                 } else if (data === "sub_add_unlimited_skip") {
-                    // ... (همان)
+                    let stateName = "Subscriber";
+                    try {
+                        const savedStateRaw = await d1Get(env, "tg_bot_state");
+                        if (savedStateRaw) {
+                            const stObj = JSON.parse(savedStateRaw);
+                            if (stObj[chatId] && stObj[chatId].name) {
+                                stateName = stObj[chatId].name;
+                            }
+                        }
+                    } catch (e) {}
+
+                    const newUuid = crypto.randomUUID();
+                    if (isRemotePanel) {
+                        const res = await remotePanelWriteAction(
+                            activePanel,
+                            "POST",
+                            null,
+                            { key: activePanel.apiKey, name: stateName },
+                        );
+                        if (res.success && res.user) {
+                            const detail = getSubDetail(res.user.id, [
+                                res.user,
+                            ]);
+                            await sendOrEdit(
+                                chatId,
+                                `✅ ${t("msg_added")}\n\n${detail.text}`,
+                                detail.kb,
+                                messageId,
+                            );
+                        } else {
+                            await sendOrEdit(chatId, t("msg_panel_error"), {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: t("btn_main_menu"),
+                                            callback_data: "main_menu",
+                                        },
+                                    ],
+                                ],
+                            });
+                        }
+                    } else {
+                        if (!sysConfig.users) sysConfig.users = [];
+                        sysConfig.users.push({
+                            id: newUuid,
+                            name: stateName,
+                            limitTotalReq: null,
+                            limitDailyReq: null,
+                            expiryMs: null,
+                            createdAt: Date.now(),
+                        });
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        const detail = getSubDetail(newUuid);
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("msg_added")}\n\n${detail.text}`,
+                            detail.kb,
+                            messageId,
+                        );
+                    }
+                    tgState[chatId] = null;
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
                 } else if (data === "sys_panic_init") {
-                    // ... (همان)
+                    const text = `${t("msg_confirm_panic")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `🚨 YES PANIC 🚨`,
+                                    callback_data: "sys_panic_confirm",
+                                },
+                                {
+                                    text: `❌ No, Cancel`,
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data === "sys_panic_confirm") {
-                    // ... (همان)
+                    sysConfig.apiRoute = Array.from(
+                        crypto.getRandomValues(new Uint8Array(8)),
+                    )
+                        .map((b) => b.toString(16).padStart(2, "0"))
+                        .join("");
+                    sysConfig.isPaused = true;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    const successText = `${t("msg_panic")}\n\n🔑 New Secret Path Randomized. All old sessions revoked.`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, successText, kb, messageId);
                 } else if (data === "sys_dashboard") {
-                    // ... (همان)
+                    let users,
+                        activeCount,
+                        pausedCount,
+                        expiredCount,
+                        autoDisabledCount;
+                    if (isRemotePanel) {
+                        const statsRes =
+                            await fetchRemotePanelStats(activePanel);
+                        if (statsRes.success && statsRes.stats) {
+                            const s = statsRes.stats;
+                            users = [];
+                            activeCount = s.users?.active || 0;
+                            pausedCount = s.users?.paused || 0;
+                            expiredCount = s.users?.expired || 0;
+                            autoDisabledCount = s.users?.autoDisabled || 0;
+                        } else {
+                            const panelUsers = await getPanelUsers();
+                            users = panelUsers || [];
+                            activeCount = users.filter(
+                                (u) =>
+                                    !u.isPaused &&
+                                    (!u.expiryMs || Date.now() <= u.expiryMs),
+                            ).length;
+                            pausedCount = users.filter(
+                                (u) => u.isPaused && !u.disabledReason,
+                            ).length;
+                            expiredCount = users.filter(
+                                (u) =>
+                                    u.expiryMs &&
+                                    Date.now() > u.expiryMs &&
+                                    !u.isPaused,
+                            ).length;
+                            autoDisabledCount = users.filter(
+                                (u) => u.isPaused && u.disabledReason,
+                            ).length;
+                        }
+                    } else {
+                        users = sysConfig.users || [];
+                        activeCount = users.filter(
+                            (u) =>
+                                !u.isPaused &&
+                                (!u.expiryMs || Date.now() <= u.expiryMs),
+                        ).length;
+                        pausedCount = users.filter(
+                            (u) => u.isPaused && !u.disabledReason,
+                        ).length;
+                        expiredCount = users.filter(
+                            (u) =>
+                                u.expiryMs &&
+                                Date.now() > u.expiryMs &&
+                                !u.isPaused,
+                        ).length;
+                        autoDisabledCount = users.filter(
+                            (u) => u.isPaused && u.disabledReason,
+                        ).length;
+                    }
+                    let dashText = `📊 **${t("dashboard")}**\n`;
+                    dashText += `━━━━━━━━━━━━━━━━\n`;
+                    dashText += `📌 **${t("current_panel")}**: ${activePanel.isLocal ? "🏠" : "🌐"} ${activePanel.name}\n`;
+                    dashText += `━━━━━━━━━━━━━━━━\n`;
+                    dashText += `👥 **${t("dash_total")}**: ${Array.isArray(users) ? users.length : activeCount + pausedCount + expiredCount + autoDisabledCount}\n`;
+                    dashText += `🟢 **${t("dash_active")}**: ${activeCount}\n`;
+                    dashText += `⏸️ **${t("dash_paused")}**: ${pausedCount}\n`;
+                    dashText += `🔴 **${t("dash_expired")}**: ${expiredCount}\n`;
+                    dashText += `🚫 **${t("dash_auto_disabled")}**: ${autoDisabledCount}\n`;
+                    if (!isRemotePanel) {
+                        const upSeconds = Math.floor(
+                            (Date.now() - isolateStartTime) / 1000,
+                        );
+                        const dh = Math.floor(upSeconds / 3600);
+                        const dm = Math.floor((upSeconds % 3600) / 60);
+                        dashText += `⏱ **${t("uptime")}**: ${dh}h ${dm}m\n`;
+                        dashText += `🔌 **${t("streams")}**: ${activeConnections}\n`;
+                        dashText += `⚡ **System**: ${sysConfig.isPaused ? t("paused") : t("active")}\n`;
+                    }
+                    dashText += `━━━━━━━━━━━━━━━━`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, dashText, kb, messageId);
                 } else if (data === "sys_stats") {
-                    // ... (همان)
+                    let users, totalReqs, dailyReqs;
+                    if (isRemotePanel) {
+                        const statsRes =
+                            await fetchRemotePanelStats(activePanel);
+                        if (statsRes.success && statsRes.stats) {
+                            const s = statsRes.stats;
+                            users = [];
+                            totalReqs = s.traffic?.totalRequests || 0;
+                            dailyReqs = s.traffic?.dailyRequests || 0;
+                        } else {
+                            const panelUsers = await getPanelUsers();
+                            users = panelUsers || [];
+                            totalReqs = 0;
+                            dailyReqs = 0;
+                        }
+                    } else {
+                        users = sysConfig.users || [];
+                        totalReqs = 0;
+                        dailyReqs = 0;
+                        const todayDate = new Date()
+                            .toISOString()
+                            .split("T")[0];
+                        users.forEach((u) => {
+                            const idClean = u.id
+                                .replace(/-/g, "")
+                                .toLowerCase();
+                            const sysU = sysUsageCache?.users?.[idClean] || {
+                                reqs: 0,
+                                dReqs: 0,
+                                lastDay: "",
+                            };
+                            totalReqs += sysU.reqs || 0;
+                            if (sysU.lastDay === todayDate)
+                                dailyReqs += sysU.dReqs || 0;
+                        });
+                    }
+                    let statsText = `📈 **${t("stats_title")}**\n`;
+                    statsText += `━━━━━━━━━━━━━━━━\n`;
+                    statsText += `📌 **${t("current_panel")}**: ${activePanel.isLocal ? "🏠" : "🌐"} ${activePanel.name}\n`;
+                    statsText += `━━━━━━━━━━━━━━━━\n`;
+                    statsText += `👥 **${t("dash_total")}**: ${Array.isArray(users) ? users.length : "N/A"}\n`;
+                    statsText += `📊 **${t("total_traffic")}**: ${(totalReqs / 6000).toFixed(2)} GB\n`;
+                    statsText += `📅 **${t("daily_traffic")}**: ${(dailyReqs / 6000).toFixed(2)} GB\n`;
+                    if (!isRemotePanel) {
+                        const upSeconds = Math.floor(
+                            (Date.now() - isolateStartTime) / 1000,
+                        );
+                        const dh = Math.floor(upSeconds / 3600);
+                        const dm = Math.floor((upSeconds % 3600) / 60);
+                        statsText += `⏱ **${t("tg_uptime")}**: ${dh}h ${dm}m\n`;
+                        statsText += `🔌 **${t("tg_conns")}**: ${activeConnections}\n`;
+                        statsText += `📦 **${t("tg_version")}**: v${CURRENT_VERSION}\n`;
+                    }
+                    statsText += `━━━━━━━━━━━━━━━━`;
+                    if (sysConfig.cfAccountId && sysConfig.cfApiToken) {
+                        const reqs = await fetchCloudflareUsage(
+                            sysConfig.cfAccountId,
+                            sysConfig.cfApiToken,
+                        );
+                        if (reqs !== null) {
+                            const pct = ((reqs / 100000) * 100).toFixed(2);
+                            statsText += `\n☁️ **Cloudflare API**: ${reqs}/100000 (${pct}%)`;
+                        }
+                    }
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `🔄 ${t("btn_update_usage")}`,
+                                    callback_data: "sys_stats",
+                                },
+                            ],
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, statsText, kb, messageId);
                 } else if (data === "sys_panel_info") {
-                    // ... (همان)
+                    let infoText = `ℹ️ **${t("panel_info")}**\n`;
+                    infoText += `━━━━━━━━━━━━━━━━\n`;
+                    infoText += `📌 **${t("current_panel")}**: ${activePanel.isLocal ? "🏠" : "🌐"} ${activePanel.name}\n`;
+                    if (activePanel.isLocal) {
+                        infoText += `🌐 **Host**: ${hostName}\n`;
+                        infoText += `🔑 **API Route**: \`${sysConfig.apiRoute}\`\n`;
+                        infoText += `📡 **Mode**: ${sysConfig.mode || "alpha"}\n`;
+                        infoText += `🔒 **Ports**: ${sysConfig.socketPorts || "443"}\n`;
+                    } else {
+                        infoText += `🌐 **Host**: ${activePanel.host}\n`;
+                        infoText += `🔑 **API Route**: \`${activePanel.apiRoute}\`\n`;
+                    }
+                    infoText += `📱 **Version**: ${CURRENT_VERSION}\n`;
+                    infoText += `━━━━━━━━━━━━━━━━`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, infoText, kb, messageId);
                 } else if (data.startsWith("subs_disabled:")) {
-                    // ... (همان)
+                    const panelUsers = await getPanelUsers();
+                    const users = panelUsers || [];
+                    const disabledUsers = users.filter((u) => u.isPaused);
+                    if (disabledUsers.length === 0) {
+                        const kb = {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: t("btn_main_menu"),
+                                        callback_data: "main_menu",
+                                    },
+                                ],
+                            ],
+                        };
+                        await sendOrEdit(
+                            chatId,
+                            `🚫 ${t("msg_no_disabled")}`,
+                            kb,
+                            messageId,
+                        );
+                    } else {
+                        const page =
+                            parseInt(data.replace("subs_disabled:", "")) || 0;
+                        const itemsPerPage = 5;
+                        const start = page * itemsPerPage;
+                        const end = start + itemsPerPage;
+                        const pageUsers = disabledUsers.slice(start, end);
+                        let text = `🚫 **${t("disabled_users")}** (${disabledUsers.length})\n━━━━━━━━━━━━━━━━\n`;
+                        const inline_keyboard = [];
+                        pageUsers.forEach((u) => {
+                            const reason = u.disabledReason || t("paused");
+                            text += `👤 **${u.name}**\n   ${reason}\n`;
+                            inline_keyboard.push([
+                                {
+                                    text: `▶️ ${u.name}`,
+                                    callback_data: `sub_toggle:${u.id}`,
+                                },
+                            ]);
+                        });
+                        const navRow = [];
+                        if (page > 0)
+                            navRow.push({
+                                text: `⬅️ ${t("btn_back")}`,
+                                callback_data: `subs_disabled:${page - 1}`,
+                            });
+                        if (end < disabledUsers.length)
+                            navRow.push({
+                                text: `${t("btn_next")} ➡️`,
+                                callback_data: `subs_disabled:${page + 1}`,
+                            });
+                        if (navRow.length > 0) inline_keyboard.push(navRow);
+                        inline_keyboard.push([
+                            {
+                                text: t("btn_main_menu"),
+                                callback_data: "main_menu",
+                            },
+                        ]);
+                        await sendOrEdit(
+                            chatId,
+                            text,
+                            { inline_keyboard },
+                            messageId,
+                        );
+                    }
                 } else if (data === "sub_search_init") {
-                    // ... (همان)
+                    tgState[chatId] = { step: "sub_search" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `🔍 ${t("msg_enter_search")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_reset_traffic:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_reset_traffic:", "");
+                    if (isRemotePanel) {
+                        await remotePanelResetTraffic(activePanel, uuid);
+                    } else {
+                        if (!sysUsageCache) sysUsageCache = { users: {} };
+                        if (!sysUsageCache.users) sysUsageCache.users = {};
+                        const uuidClean = uuid.replace(/-/g, "").toLowerCase();
+                        if (sysUsageCache.users[uuidClean]) {
+                            sysUsageCache.users[uuidClean].reqs = 0;
+                            sysUsageCache.users[uuidClean].dReqs = 0;
+                        } else {
+                            sysUsageCache.users[uuidClean] = {
+                                reqs: 0,
+                                dReqs: 0,
+                                lastDay: new Date().toISOString().split("T")[0],
+                            };
+                        }
+                        await cachedD1Put(
+                            env,
+                            "sys_usage",
+                            JSON.stringify(sysUsageCache),
+                        );
+                    }
+                    const panelUsers = await getPanelUsers();
+                    const detail = getSubDetail(uuid, panelUsers);
+                    await sendOrEdit(
+                        chatId,
+                        `✅ ${t("msg_traffic_reset")}\n\n${detail.text}`,
+                        detail.kb,
+                        messageId,
+                    );
                 } else if (data.startsWith("sub_extend_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_extend_init:", "");
+                    tgState[chatId] = { step: `sub_extend_days:${uuid}` };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `📅 ${t("msg_enter_extend_days")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_edit_notes_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_edit_notes_init:", "");
+                    tgState[chatId] = { step: `sub_edit_notes:${uuid}` };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `📝 ${t("msg_enter_notes")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_edit_device_init:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_edit_device_init:", "");
+                    tgState[chatId] = { step: `sub_edit_device:${uuid}` };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const text = `📱 ${t("msg_enter_device_limit")}`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `♾️ Unlimited`,
+                                    callback_data: `sub_device_unlimited:${uuid}`,
+                                },
+                            ],
+                            [
+                                {
+                                    text: `❌ ${t("btn_cancel")}`,
+                                    callback_data: `sub_detail:${uuid}`,
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("sub_device_unlimited:")) {
-                    // ... (همان)
+                    const uuid = data.replace("sub_device_unlimited:", "");
+                    if (isRemotePanel) {
+                        await remotePanelWriteAction(activePanel, "PUT", uuid, {
+                            key: activePanel.apiKey,
+                            maxConfigs: null,
+                        });
+                    } else if (sysConfig.users) {
+                        const u = sysConfig.users.find(
+                            (usr) => usr.id === uuid,
+                        );
+                        if (u) {
+                            u.maxConfigs = null;
+                            await cachedD1Put(
+                                env,
+                                "sys_config",
+                                JSON.stringify(sysConfig),
+                            );
+                        }
+                    }
+                    const panelUsers = await getPanelUsers();
+                    const detail = getSubDetail(uuid, panelUsers);
+                    await sendOrEdit(
+                        chatId,
+                        `✅ ${t("status_updated")}`,
+                        detail.kb,
+                        messageId,
+                    );
                 } else if (data === "get_sub_link") {
-                    // ... (همان)
+                    const subUrl = `https://${hostName}/${sysConfig.apiRoute}`;
+                    await fetch(`${tgApi}/sendMessage`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `\`${subUrl}\``,
+                            parse_mode: "Markdown",
+                        }),
+                    });
+                    answerText = t("sub_link_sent");
                 } else if (data === "tg_settings_menu") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_advanced_menu") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_logs_menu") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_toggle_tfo") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_toggle_ech") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_toggle_silent") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_toggle_pause2") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_proto") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data.startsWith("tg_set_proto:")) {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_dns") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_relay") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_nat64") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_maintenance") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_clean_ips") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_nodes") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_strategy") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data.startsWith("tg_set_strategy:")) {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_prefix") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_pass") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_ports") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_tg_settings") {
-                    // ... (همان)
+                    // existing code...
                 } else if (data === "tg_edit_cf_settings") {
-                    // ... (همان)
+                    // existing code...
                 }
 
                 ctx?.waitUntil(
@@ -3761,7 +4447,6 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                 );
             }
         } else if (update.message && update.message.text) {
-            // (همان کد قبلی - بدون تغییر)
             const chatId = update.message.chat.id;
             const text = update.message.text.trim();
 
@@ -3808,54 +4493,54 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     }
 
                     if (state.step === "sub_add_name") {
-                        // ... (همان)
+                        // existing code...
                     } else if (
                         state.step === "sub_add_limits" ||
                         state.step === "sub_add_unlimited_skip"
                     ) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step.startsWith("sub_edit_name:")) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step.startsWith("sub_edit_limits:")) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "sub_search") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step.startsWith("sub_extend_days:")) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step.startsWith("sub_edit_notes:")) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step.startsWith("sub_edit_device:")) {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_dns") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_relay") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_nat64") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_maintenance") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_clean_ips") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_prefix") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_pass") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_strategy") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_tg_token") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_tg_chat") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_tg_admin") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_cf_acc") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_cf_token") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_cf_worker") {
-                        // ... (همان)
+                        // existing code...
                     } else if (state.step === "tg_edit_ports") {
-                        // ... (همان)
+                        // existing code...
                     }
                 }
 
@@ -3870,7 +4555,39 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     await sendOrEdit(chatId, userHint);
                     return new Response("OK", { status: 200 });
                 }
-                // ... (بقیه)
+                let lookupId = text
+                    .replace(/^https?:\/\//, "")
+                    .replace(/\/.*$/, "")
+                    .trim();
+                const subParamMatch = text.match(/[?&]sub=([^&]+)/);
+                if (subParamMatch)
+                    lookupId = decodeURIComponent(subParamMatch[1]);
+                if (!lookupId || lookupId.length < 3) {
+                    const userHint =
+                        langCode === "fa"
+                            ? "لطفاً لینک اشتراک یا شناسه کاربری معتبر ارسال کنید."
+                            : "Please send a valid subscription link or User ID.";
+                    await sendOrEdit(chatId, userHint);
+                    return new Response("OK", { status: 200 });
+                }
+                const users = sysConfig.users || [];
+                const matchedUser = users.find(
+                    (u) =>
+                        u.id === lookupId ||
+                        u.id.replace(/-/g, "").toLowerCase() ===
+                            lookupId.replace(/-/g, "").toLowerCase() ||
+                        u.name.toLowerCase() === lookupId.toLowerCase(),
+                );
+                if (matchedUser) {
+                    const detail = getSubDetail(matchedUser.id);
+                    await sendOrEdit(chatId, detail.text, detail.kb);
+                } else {
+                    const notFound =
+                        langCode === "fa"
+                            ? "کاربری با این شناسه یافت نشد."
+                            : "No user found with this ID.";
+                    await sendOrEdit(chatId, notFound);
+                }
             }
         }
         return new Response("OK", { status: 200 });
@@ -6828,6 +7545,7 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
         },
     };
 
+    // Build selector groups
     let selectorOutbounds = [
         "⚡ Fastest",
         "🖐 Manual",
