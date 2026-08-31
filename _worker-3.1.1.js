@@ -2,7 +2,7 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.0
+ * Version: 3.1.1
  * Advanced subscription and proxy management system
  */
 
@@ -27,6 +27,7 @@ const safeBtoa = (str) => {
 };
 
 const SYSTEM_DEFAULTS = {
+    version: CURRENT_VERSION, // <-- اضافه شد
     name: "",
     apiRoute: "sync",
     maintenanceHost: "https://www.ubuntu.com, https://www.docker.com",
@@ -70,6 +71,8 @@ const SYSTEM_DEFAULTS = {
     enableDirectConfigs: false,
     customRouting: "",
     upstreamUri: "",
+    autoUpdate: false,
+    autoUpdateFormat: "encoded",
     fakeConfigs: [
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true },
@@ -104,13 +107,16 @@ async function checkIPHealth(ip, port = 443, timeout = 5000) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
         const startTime = Date.now();
+        
         const res = await fetch(`https://${ip}:${port}/`, {
             method: 'HEAD',
             signal: controller.signal,
             headers: { 'User-Agent': 'Vortix-Health-Check/1.0' }
         });
+        
         clearTimeout(timeoutId);
         const latency = Date.now() - startTime;
+        
         return {
             healthy: res.status < 500,
             latency: latency,
@@ -132,13 +138,16 @@ async function checkWorkerToServerHealth(ip, port = 443, timeout = 5000) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
         const startTime = Date.now();
+        
         const res = await fetch(`https://${ip}:${port}/`, {
             method: 'HEAD',
             signal: controller.signal,
             headers: { 'User-Agent': 'Vortix-Worker-Health/1.0' }
         });
+        
         clearTimeout(timeoutId);
         const latency = Date.now() - startTime;
+        
         return {
             healthy: res.status < 500,
             latency: latency,
@@ -159,6 +168,7 @@ async function batchHealthCheck(ips, checkFunction, port = 443, timeout = 5000) 
     const results = [];
     const healthyIps = [];
     const unhealthyIps = [];
+    
     for (const ip of ips) {
         const result = await checkFunction(ip, port, timeout);
         results.push({ ip, ...result });
@@ -168,6 +178,7 @@ async function batchHealthCheck(ips, checkFunction, port = 443, timeout = 5000) 
             unhealthyIps.push(ip);
         }
     }
+    
     return {
         results,
         healthyIps,
@@ -183,27 +194,41 @@ async function batchHealthCheck(ips, checkFunction, port = 443, timeout = 5000) 
 
 async function getWorkingProxyIPs(proxyList, checkFunction, port = 443, timeout = 5000) {
     if (!proxyList || proxyList.length === 0) return [];
+    
     const healthResults = await batchHealthCheck(proxyList, checkFunction, port, timeout);
+    
+    // If all are healthy, return all
     if (healthResults.allHealthy) {
         return proxyList;
     }
+    
+    // Replace only unhealthy IPs with new ones from fallback
     const unhealthyIps = healthResults.unhealthyIps;
     const healthyIps = healthResults.healthyIps;
+    
+    // If more than 50% are unhealthy, try to get new IPs
     if (unhealthyIps.length > proxyList.length / 2) {
         const fallbackIps = await fetchFallbackProxyIPs(unhealthyIps.length);
         const fallbackResults = await batchHealthCheck(fallbackIps, checkFunction, port, timeout);
         const workingFallback = fallbackResults.healthyIps;
+        
+        // Replace unhealthy with working fallback IPs
         const newProxyList = [...healthyIps];
         for (const ip of workingFallback) {
             if (newProxyList.length < proxyList.length) {
                 newProxyList.push(ip);
             }
         }
+        
+        // If still not enough, keep some unhealthy ones (better than nothing)
         while (newProxyList.length < proxyList.length && unhealthyIps.length > 0) {
             newProxyList.push(unhealthyIps.pop());
         }
+        
         return newProxyList;
     }
+    
+    // Just remove unhealthy ones if few
     return healthyIps;
 }
 
@@ -216,6 +241,7 @@ async function fetchFallbackProxyIPs(count) {
             .slice(0, count);
         return ips;
     } catch (e) {
+        // Return some default IPs if API fails
         const defaultIps = [
             '1.1.1.1', '8.8.8.8', '9.9.9.9',
             '208.67.222.222', '208.67.220.220'
@@ -1095,6 +1121,73 @@ export default {
             return new Response(null, { status: 404 });
         }
     },
+    async scheduled(event, env, ctx) {
+        try {
+            await loadSysConfig(env, ctx);
+            if (sysConfig.autoUpdate && sysConfig.cfAccountId && sysConfig.cfApiToken && sysConfig.cfWorkerName) {
+                const repo = (sysConfig.githubRepo || "mahbodrahimi/Vortix-Panel")
+                    .replace(/https?:\/\/github\.com\//, "")
+                    .trim();
+                let remoteVer = null;
+                try {
+                    const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/version`);
+                    if (res.ok) {
+                        remoteVer = (await res.text()).trim();
+                    }
+                } catch (e) {}
+                
+                if (remoteVer && cmpVersions(CURRENT_VERSION, remoteVer) < 0) {
+                    try {
+                        let res = await fetch(UPDATE_URL);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        let latestCode = await res.text();
+                        const deployRes = await deployWorkerToCloudflare(
+                            sysConfig.cfAccountId,
+                            sysConfig.cfApiToken,
+                            sysConfig.cfWorkerName,
+                            latestCode
+                        );
+                        const deployResult = await deployRes.json();
+                        if (deployResult.success) {
+                            // همگام‌سازی نسخه با دیتابیس بعد از آپدیت خودکار
+                            sysConfig.version = remoteVer || CURRENT_VERSION;
+                            await cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
+                            await logActivity(env, "Auto-Update Success", `Auto-updated to v${remoteVer}`);
+                            if (sysConfig.linkedPanels && Array.isArray(sysConfig.linkedPanels)) {
+                                for (const p of sysConfig.linkedPanels) {
+                                    if (p && p.url && p.apiKey) {
+                                        let cleanUrl = p.url.trim();
+                                        if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+                                            cleanUrl = "https://" + cleanUrl;
+                                        }
+                                        try {
+                                            const parsed = new URL(cleanUrl);
+                                            const targetUrl = `${parsed.protocol}//${parsed.host}/${encodeURI(sysConfig.apiRoute)}/api/update`;
+                                            ctx?.waitUntil(
+                                                fetch(targetUrl, {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({
+                                                        key: p.apiKey,
+                                                        action: "deploy",
+                                                        code: latestCode,
+                                                        force: true
+                                                    }),
+                                                    signal: AbortSignal.timeout(15000)
+                                                }).catch(() => {})
+                                            );
+                                        } catch (err) {}
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        await logActivity(env, "Auto-Update Failed", `Auto-update failed: ${e.message}`);
+                    }
+                }
+            }
+        } catch (e) {}
+    }
 };
 
 // =============================================
@@ -1156,9 +1249,16 @@ async function handleHealthCheck(request, env) {
             );
         }
 
+        // Limit count
         const targetIps = ips.slice(0, Math.min(count, ips.length));
+        
+        // Determine which health check function to use
         const checkFunction = type === "source" ? checkIPHealth : checkWorkerToServerHealth;
+        
+        // Perform health check
         const healthResults = await batchHealthCheck(targetIps, checkFunction, port, timeout);
+        
+        // Get working IPs with fallback
         const workingIps = await getWorkingProxyIPs(targetIps, checkFunction, port, timeout);
         
         return new Response(
@@ -1263,6 +1363,18 @@ async function loadSysConfig(env, ctx = null) {
                             ...(stored ? JSON.parse(stored) : null),
                         };
                         sysConfigCacheTime = Date.now();
+                        
+                        // ===== همگام‌سازی نسخه با دیتابیس =====
+                        if (sysConfig.version !== CURRENT_VERSION) {
+                            sysConfig.version = CURRENT_VERSION;
+                            const promise = cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
+                            if (ctx && typeof ctx.waitUntil === "function") {
+                                ctx.waitUntil(promise.catch(() => {}));
+                            } else {
+                                promise.catch(() => {});
+                            }
+                        }
+                        
                         if (migrateSlaveNodesToLinkedPanels(sysConfig)) {
                             const promise = cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
                             if (ctx && typeof ctx.waitUntil === "function") {
@@ -2132,6 +2244,10 @@ async function handleUpdateApi(request, env, ctx) {
             const deployResult = await deployRes.json();
 
             if (deployResult.success) {
+                // ===== همگام‌سازی نسخه با دیتابیس بعد از دیپلوی موفق =====
+                sysConfig.version = newVersion || CURRENT_VERSION;
+                await cachedD1Put(env, "sys_config", JSON.stringify(sysConfig));
+
                 ctx?.waitUntil(
                     logActivity(
                         env,
@@ -2481,7 +2597,7 @@ async function handleAuth(request, hostName, ctx, env) {
                         sysUsageCache && sysUsageCache.users
                             ? sysUsageCache.users
                             : {},
-                    version: CURRENT_VERSION,
+                    version: CURRENT_VERSION, // <-- نسخه فعلی به داشبورد ارسال می‌شود
                     profiles: getAllProfiles().map((p) => {
                         let subSuffix =
                             p.name === "Default"
@@ -3638,7 +3754,41 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     const menu = getMainMenu(activePanel, isAuthorized);
                     await sendOrEdit(chatId, menu.text, menu.kb, messageId);
                 } else if (data === "sys_metrics") {
-                    // existing code...
+                    let usageStr = t("unlimited");
+                    if (sysConfig.cfAccountId && sysConfig.cfApiToken) {
+                        const reqs = await fetchCloudflareUsage(
+                            sysConfig.cfAccountId,
+                            sysConfig.cfApiToken,
+                        );
+                        if (reqs !== null) {
+                            const pct = ((reqs / 100000) * 100).toFixed(2);
+                            usageStr = `${reqs}/100000 (${pct}%)`;
+                        }
+                    }
+                    const upSeconds = Math.floor(
+                        (Date.now() - isolateStartTime) / 1000,
+                    );
+                    const dh = Math.floor(upSeconds / 3600);
+                    const dm = Math.floor((upSeconds % 3600) / 60);
+
+                    let text = `📡 **${t("metrics")}**\n`;
+                    text += `━━━━━━━━━━━━━━━━\n`;
+                    text += `⏱ **${t("uptime")}**: ${dh}h ${dm}m\n`;
+                    text += `🔌 **${t("streams")}**: ${activeConnections}\n`;
+                    text += `📊 **Cloudflare API Usage**: ${usageStr}\n`;
+                    text += `━━━━━━━━━━━━━━━━`;
+
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data.startsWith("subs_list:")) {
                     const page = parseInt(data.replace("subs_list:", "")) || 0;
                     const panelUsers = await getPanelUsers();
@@ -4390,49 +4540,707 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     });
                     answerText = t("sub_link_sent");
                 } else if (data === "tg_settings_menu") {
-                    // existing code...
+                    const modeTxt =
+                        sysConfig.mode === "alpha"
+                            ? "Alpha (V)"
+                            : sysConfig.mode === "beta"
+                              ? "Beta (T)"
+                              : "Both";
+                    const portsTxt = sysConfig.socketPorts || "443";
+                    const passTxt = sysConfig.masterKey || "admin";
+                    const dnsTxt = sysConfig.resolveIp || "1.1.1.1";
+                    const relayTxt = sysConfig.backupRelay || "—";
+                    const tfoTxt = sysConfig.enableOpt1 ? "✅" : "❌";
+                    const echTxt = sysConfig.enableOpt2 ? "✅" : "❌";
+                    const pauseTxt = sysConfig.isPaused ? "🔴 ON" : "🟢 OFF";
+                    const silentTxt = sysConfig.silentAlerts ? "✅" : "❌";
+                    const autoUpTxt = sysConfig.autoUpdate ? "✅" : "❌";
+                    const directTxt = sysConfig.enableDirectConfigs
+                        ? "✅"
+                        : "❌";
+                    const nat64Txt = sysConfig.nat64Prefix || "—";
+                    let text = `⚙️ **${t("tg_sys_settings")}**\n━━━━━━━━━━━━━━━━\n`;
+                    text += `📡 ${t("tg_proto")}: **${modeTxt}**\n`;
+                    text += `🔌 ${t("tg_ports")}: \`${portsTxt}\`\n`;
+                    text += `🔑 ${t("tg_pass")}: \`${passTxt}\`\n`;
+                    text += `🌐 ${t("tg_dns")}: \`${dnsTxt}\`\n`;
+                    text += `🔗 ${t("tg_relay")}: \`${relayTxt}\`\n`;
+                    text += `⚡ ${t("tg_tfo")}: ${tfoTxt} | ECH: ${echTxt}\n`;
+                    text += `🔇 ${t("tg_silent")}: ${silentTxt}\n`;
+                    text += `🛑 ${t("tg_pause")}: ${pauseTxt}\n`;
+                    text += `🔄 ${t("tg_auto_update")}: ${autoUpTxt}\n`;
+                    text += `🔀 ${t("tg_direct")}: ${directTxt}\n`;
+                    text += `🌐 ${t("tg_nat64")}: \`${nat64Txt}\`\n`;
+                    text += `━━━━━━━━━━━━━━━━`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `📡 ${t("tg_proto")}`,
+                                    callback_data: "tg_edit_proto",
+                                },
+                                {
+                                    text: `🔌 ${t("tg_ports")}`,
+                                    callback_data: "tg_edit_ports",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🔑 ${t("tg_pass")}`,
+                                    callback_data: "tg_edit_pass",
+                                },
+                                {
+                                    text: `🌐 ${t("tg_dns")}`,
+                                    callback_data: "tg_edit_dns",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🔗 ${t("tg_relay")}`,
+                                    callback_data: "tg_edit_relay",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `⚡ ${t("tg_tfo")}`,
+                                    callback_data: "tg_toggle_tfo",
+                                },
+                                { text: `ECH`, callback_data: "tg_toggle_ech" },
+                            ],
+                            [
+                                {
+                                    text: `${t("tg_silent")}`,
+                                    callback_data: "tg_toggle_silent",
+                                },
+                                {
+                                    text: `${t("tg_pause")}`,
+                                    callback_data: "tg_toggle_pause2",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🔄 ${t("tg_auto_update")}`,
+                                    callback_data: "tg_toggle_auto_update",
+                                },
+                                {
+                                    text: `🔀 ${t("tg_direct")}`,
+                                    callback_data: "tg_toggle_direct",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🌐 ${t("tg_nat64")}`,
+                                    callback_data: "tg_edit_nat64",
+                                },
+                            ],
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data === "tg_advanced_menu") {
-                    // existing code...
+                    const cleanTxt = sysConfig.cleanIps
+                        ? sysConfig.cleanIps.substring(0, 40) +
+                          (sysConfig.cleanIps.length > 40 ? "..." : "")
+                        : "—";
+                    const lpUrls = (sysConfig.linkedPanels || []).map(p => p.url).filter(Boolean);
+                    const nodesTxt = lpUrls.length > 0
+                        ? lpUrls.join(", ").substring(0, 40) +
+                          (lpUrls.join(", ").length > 40 ? "..." : "")
+                        : "—";
+                    const strategyTxt = sysConfig.nameStrategy || "default";
+                    const prefixTxt = sysConfig.namePrefix || "Core";
+                    const maintenanceTxt = sysConfig.maintenanceHost
+                        ? sysConfig.maintenanceHost.substring(0, 30) + "..."
+                        : "—";
+                    let text = `🔧 **${t("tg_adv_settings")}**\n━━━━━━━━━━━━━━━━\n`;
+                    text += `🧹 ${t("tg_clean_ips")}: \`${cleanTxt}\`\n`;
+                    text += `🖥️ ${t("tg_nodes")}: \`${nodesTxt}\`\n`;
+                    text += `📝 ${t("tg_strategy")}: \`${strategyTxt}\`\n`;
+                    text += `🏷️ ${t("tg_prefix")}: \`${prefixTxt}\`\n`;
+                    text += `🎭 ${t("tg_maintenance")}: \`${maintenanceTxt}\`\n`;
+                    text += `━━━━━━━━━━━━━━━━`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `🧹 ${t("tg_clean_ips")}`,
+                                    callback_data: "tg_edit_clean_ips",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🖥️ ${t("tg_nodes")}`,
+                                    callback_data: "tg_edit_nodes",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `📝 ${t("tg_strategy")}`,
+                                    callback_data: "tg_edit_strategy",
+                                },
+                                {
+                                    text: `🏷️ ${t("tg_prefix")}`,
+                                    callback_data: "tg_edit_prefix",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🎭 ${t("tg_maintenance")}`,
+                                    callback_data: "tg_edit_maintenance",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `🤖 ${t("tg_tg_settings")}`,
+                                    callback_data: "tg_edit_tg_settings",
+                                },
+                            ],
+                            [
+                                {
+                                    text: `☁️ ${t("tg_cf_settings")}`,
+                                    callback_data: "tg_edit_cf_settings",
+                                },
+                            ],
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data === "tg_logs_menu") {
-                    // existing code...
+                    let logs = [];
+                    if (env.IOT_DB) {
+                        const stored = await d1Get(env, "sys_logs");
+                        if (stored) logs = JSON.parse(stored);
+                    }
+                    let text = `📋 **${t("tg_logs")}**\n━━━━━━━━━━━━━━━━\n`;
+                    if (logs.length === 0) {
+                        text += `ℹ️ ${t("tg_log_empty")}\n`;
+                    } else {
+                        logs.slice(0, 10).forEach((log, i) => {
+                            const time = new Date(log.ts).toLocaleString();
+                            text += `${i + 1}. ${t("tg_log_entry")} **${log.type}**\n   ${log.detail}\n   📅 ${time}\n`;
+                        });
+                        if (logs.length > 10)
+                            text += `\n... ${logs.length - 10} more entries`;
+                    }
+                    text += `\n━━━━━━━━━━━━━━━━`;
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: `🔄 ${t("btn_update_usage")}`,
+                                    callback_data: "tg_logs_menu",
+                                },
+                            ],
+                            [
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(chatId, text, kb, messageId);
                 } else if (data === "tg_toggle_tfo") {
-                    // existing code...
+                    sysConfig.enableOpt1 = !sysConfig.enableOpt1;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    const menu = getMainMenu(getActivePanel(), isAuthorized);
+                    await sendOrEdit(chatId, menu.text, menu.kb, messageId);
                 } else if (data === "tg_toggle_ech") {
-                    // existing code...
+                    sysConfig.enableOpt2 = !sysConfig.enableOpt2;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    const menu = getMainMenu(getActivePanel(), isAuthorized);
+                    await sendOrEdit(chatId, menu.text, menu.kb, messageId);
                 } else if (data === "tg_toggle_silent") {
-                    // existing code...
+                    sysConfig.silentAlerts = !sysConfig.silentAlerts;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    const menu = getMainMenu(getActivePanel(), isAuthorized);
+                    await sendOrEdit(chatId, menu.text, menu.kb, messageId);
                 } else if (data === "tg_toggle_pause2") {
-                    // existing code...
+                    sysConfig.isPaused = !sysConfig.isPaused;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    const menu = getMainMenu(getActivePanel(), isAuthorized);
+                    await sendOrEdit(chatId, menu.text, menu.kb, messageId);
+                } else if (data === "tg_toggle_auto_update") {
+                    sysConfig.autoUpdate = !sysConfig.autoUpdate;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    await sendOrEdit(
+                        chatId,
+                        `⚙️ ${t("tg_auto_update")}: ${sysConfig.autoUpdate ? "✅ ON" : "❌ OFF"}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "◀️ " + t("btn_back"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
+                } else if (data === "tg_toggle_direct") {
+                    sysConfig.enableDirectConfigs =
+                        !sysConfig.enableDirectConfigs;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    answerText = t("tg_saved");
+                    await sendOrEdit(
+                        chatId,
+                        `🔀 ${t("tg_direct")}: ${sysConfig.enableDirectConfigs ? "✅ ON" : "❌ OFF"}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "◀️ " + t("btn_back"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_proto") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_proto" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Alpha (V-Core)",
+                                    callback_data: "tg_set_proto:alpha",
+                                },
+                                {
+                                    text: "Beta (T-Core)",
+                                    callback_data: "tg_set_proto:beta",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "Both",
+                                    callback_data: "tg_set_proto:both",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "❌ " + t("btn_cancel"),
+                                    callback_data: "tg_settings_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(
+                        chatId,
+                        `📡 **${t("tg_proto")}**\n${t("tg_current_val")}: **${sysConfig.mode}**\n\n${t("tg_new_val")}`,
+                        kb,
+                        messageId,
+                    );
                 } else if (data.startsWith("tg_set_proto:")) {
-                    // existing code...
+                    const val = data.replace("tg_set_proto:", "");
+                    sysConfig.mode = val;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    tgState[chatId] = null;
+                    answerText = t("tg_saved");
+                    await sendOrEdit(
+                        chatId,
+                        `✅ ${t("tg_proto")}: **${val}**`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "◀️ " + t("btn_back"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_dns") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_dns" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🌐 **${t("tg_dns")}**\n${t("tg_current_val")}: \`${sysConfig.resolveIp}\`\n\n${t("tg_new_val")}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_relay") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_relay" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🔗 **${t("tg_relay")}**\n${t("tg_current_val")}: \`${sysConfig.backupRelay || "—"}\`\n\n${t("tg_new_val")}\n_send empty to clear_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_nat64") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_nat64" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🌐 **${t("tg_nat64")}**\n${t("tg_current_val")}: \`${sysConfig.nat64Prefix || "—"}\`\n\n${t("tg_new_val")}\n_send empty to clear_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_maintenance") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_maintenance" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🎭 **${t("tg_maintenance")}**\n${t("tg_current_val")}: \`${sysConfig.maintenanceHost || "—"}\`\n\n${t("tg_new_val")}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_clean_ips") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_clean_ips" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🧹 **${t("tg_clean_ips")}**\n${t("tg_current_val")}: \`${sysConfig.cleanIps || "—"}\`\n\n${t("tg_new_val")}\n_send empty to clear_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_nodes") {
-                    // existing code...
+                    let lpList = (sysConfig.linkedPanels || [])
+                        .map((p, i) => `${i + 1}. \`${p.url}\``)
+                        .join("\n");
+                    if (!lpList) lpList = "—";
+                    const warningMsg = langCode === "fa"
+                        ? `🖥️ **${t("tg_nodes")}**\n\n${lpList}\n\n⚠️ لطفاً برای افزودن، حذف یا ویرایش نودهای خارجی به صورت امن همراه با کلید دسترسی (API Key)، از داشبورد تحت وب استفاده کنید.`
+                        : `🖥️ **${t("tg_nodes")}**\n\n${lpList}\n\n⚠️ Please use the Web Dashboard to add, remove, or edit external nodes securely with API Keys.`;
+                    await sendOrEdit(
+                        chatId,
+                        warningMsg,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "◀️ " + t("btn_back"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_strategy") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_strategy" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    const kb = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "default",
+                                    callback_data: "tg_set_strategy:default",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "type-user-port",
+                                    callback_data:
+                                        "tg_set_strategy:type-user-port",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "user-port",
+                                    callback_data: "tg_set_strategy:user-port",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "ip",
+                                    callback_data: "tg_set_strategy:ip",
+                                },
+                            ],
+                            [
+                                {
+                                    text: "❌ " + t("btn_cancel"),
+                                    callback_data: "tg_advanced_menu",
+                                },
+                            ],
+                        ],
+                    };
+                    await sendOrEdit(
+                        chatId,
+                        `📝 **${t("tg_strategy")}**\n${t("tg_current_val")}: \`${sysConfig.nameStrategy}\`\n\n_send custom or select:_`,
+                        kb,
+                        messageId,
+                    );
                 } else if (data.startsWith("tg_set_strategy:")) {
-                    // existing code...
+                    const val = data.replace("tg_set_strategy:", "");
+                    sysConfig.nameStrategy = val;
+                    await cachedD1Put(
+                        env,
+                        "sys_config",
+                        JSON.stringify(sysConfig),
+                    );
+                    tgState[chatId] = null;
+                    answerText = t("tg_saved");
+                    await sendOrEdit(
+                        chatId,
+                        `✅ ${t("tg_strategy")}: **${val}**`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "◀️ " + t("btn_back"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_prefix") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_prefix" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🏷️ **${t("tg_prefix")}**\n${t("tg_current_val")}: \`${sysConfig.namePrefix}\`\n\n${t("tg_new_val")}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_pass") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_pass" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🔑 **${t("tg_pass")}**\n${t("tg_current_val")}: \`${sysConfig.masterKey}\`\n\n${t("tg_new_val")}`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_ports") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_ports" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🔌 **${t("tg_ports")}**\n${t("tg_current_val")}: \`${sysConfig.socketPorts}\`\n\n${t("tg_new_val")}\n_comma separated e.g. 443,80_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_settings_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_tg_settings") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_tg_token" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `🤖 **${t("tg_tg_settings")}**\n\n1️⃣ ${t("tg_current_val")}: \`${sysConfig.tgToken ? "***" + sysConfig.tgToken.slice(-4) : "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 } else if (data === "tg_edit_cf_settings") {
-                    // existing code...
+                    tgState[chatId] = { step: "tg_edit_cf_acc" };
+                    ctx?.waitUntil(
+                        d1Put(
+                            env,
+                            "tg_bot_state",
+                            JSON.stringify(tgState),
+                        ).catch(() => {}),
+                    );
+                    await sendOrEdit(
+                        chatId,
+                        `☁️ **${t("tg_cf_settings")}**\n\n1️⃣ CF Account ID: \`${sysConfig.cfAccountId || "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                        {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "❌ " + t("btn_cancel"),
+                                        callback_data: "tg_advanced_menu",
+                                    },
+                                ],
+                            ],
+                        },
+                        messageId,
+                    );
                 }
 
                 ctx?.waitUntil(
@@ -4493,54 +5301,888 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                     }
 
                     if (state.step === "sub_add_name") {
-                        // existing code...
-                    } else if (
+                        const name = text;
+                        tgState[chatId] = {
+                            step: "sub_add_limits",
+                            name: name,
+                        };
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+
+                        const msg = `⚙️ **${name}**\n\n${t("msg_enter_limits")}`;
+                        const kb = {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: `♾️ Skip (Unlimited)`,
+                                        callback_data: "sub_add_unlimited_skip",
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: `❌ ${t("btn_cancel")}`,
+                                        callback_data: "main_menu",
+                                    },
+                                ],
+                            ],
+                        };
+                        await sendOrEdit(chatId, msg, kb);
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (
                         state.step === "sub_add_limits" ||
                         state.step === "sub_add_unlimited_skip"
                     ) {
-                        // existing code...
-                    } else if (state.step.startsWith("sub_edit_name:")) {
-                        // existing code...
-                    } else if (state.step.startsWith("sub_edit_limits:")) {
-                        // existing code...
-                    } else if (state.step === "sub_search") {
-                        // existing code...
-                    } else if (state.step.startsWith("sub_extend_days:")) {
-                        // existing code...
-                    } else if (state.step.startsWith("sub_edit_notes:")) {
-                        // existing code...
-                    } else if (state.step.startsWith("sub_edit_device:")) {
-                        // existing code...
-                    } else if (state.step === "tg_edit_dns") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_relay") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_nat64") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_maintenance") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_clean_ips") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_prefix") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_pass") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_strategy") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_tg_token") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_tg_chat") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_tg_admin") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_cf_acc") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_cf_token") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_cf_worker") {
-                        // existing code...
-                    } else if (state.step === "tg_edit_ports") {
-                        // existing code...
+                        const name = state.name;
+                        let tReq = null;
+                        let dReq = null;
+                        let days = null;
+
+                        if (
+                            state.step !== "sub_add_unlimited_skip" &&
+                            text !== "0" &&
+                            text !== "0 0 0"
+                        ) {
+                            const parts = text.split(/\s+/).map(Number);
+                            if (parts[0] > 0) tReq = parts[0];
+                            if (parts[1] > 0) dReq = parts[1];
+                            if (parts[2] > 0) days = parts[2];
+                        }
+
+                        const newUuid = crypto.randomUUID();
+                        if (isRemotePanel) {
+                            const res = await remotePanelWriteAction(
+                                activePanel,
+                                "POST",
+                                null,
+                                {
+                                    key: activePanel.apiKey,
+                                    name: name,
+                                    trafficLimit: tReq ? tReq / 6000 : 0,
+                                    dailyLimit: dReq ? dReq / 6000 : 0,
+                                    expiryDays: days || 0,
+                                },
+                            );
+                            if (res.success && res.user) {
+                                const detail = getSubDetail(res.user.id, [
+                                    res.user,
+                                ]);
+                                await sendOrEdit(
+                                    chatId,
+                                    `✅ ${t("msg_added")}\n\n${detail.text}`,
+                                    detail.kb,
+                                );
+                            } else {
+                                await sendOrEdit(chatId, t("msg_panel_error"), {
+                                    inline_keyboard: [
+                                        [
+                                            {
+                                                text: t("btn_main_menu"),
+                                                callback_data: "main_menu",
+                                            },
+                                        ],
+                                    ],
+                                });
+                            }
+                        } else {
+                            if (!sysConfig.users) sysConfig.users = [];
+                            sysConfig.users.push({
+                                id: newUuid,
+                                name: name,
+                                limitTotalReq: tReq,
+                                limitDailyReq: dReq,
+                                expiryMs: days
+                                    ? Date.now() + days * 86400000
+                                    : null,
+                                createdAt: Date.now(),
+                            });
+                            await cachedD1Put(
+                                env,
+                                "sys_config",
+                                JSON.stringify(sysConfig),
+                            );
+                            const detail = getSubDetail(newUuid);
+                            await sendOrEdit(
+                                chatId,
+                                `✅ ${t("msg_added")}\n\n${detail.text}`,
+                                detail.kb,
+                            );
+                        }
+
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step.startsWith("sub_edit_name:")) {
+                        const uuid = state.step.replace("sub_edit_name:", "");
+                        if (isRemotePanel) {
+                            await remotePanelWriteAction(
+                                activePanel,
+                                "PUT",
+                                uuid,
+                                { key: activePanel.apiKey, name: text },
+                            );
+                        } else if (sysConfig.users) {
+                            const u = sysConfig.users.find(
+                                (usr) => usr.id === uuid,
+                            );
+                            if (u) {
+                                u.name = text;
+                                await cachedD1Put(
+                                    env,
+                                    "sys_config",
+                                    JSON.stringify(sysConfig),
+                                );
+                            }
+                        }
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+
+                        const panelUsers = await getPanelUsers();
+                        const detail = getSubDetail(uuid, panelUsers);
+                        await sendOrEdit(
+                            chatId,
+                            `✅ Successfully Changed!`,
+                            detail.kb,
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step.startsWith("sub_edit_limits:")) {
+                        const uuid = state.step.replace("sub_edit_limits:", "");
+                        let tReq = null;
+                        let dReq = null;
+                        let days = null;
+
+                        const parts = text.split(/\s+/).map(Number);
+                        if (parts[0] > 0) tReq = parts[0];
+                        if (parts[1] > 0) dReq = parts[1];
+                        if (parts[2] > 0) days = parts[2];
+
+                        if (isRemotePanel) {
+                            await remotePanelWriteAction(
+                                activePanel,
+                                "PUT",
+                                uuid,
+                                {
+                                    key: activePanel.apiKey,
+                                    trafficLimit: tReq ? tReq / 6000 : 0,
+                                    dailyLimit: dReq ? dReq / 6000 : 0,
+                                    expiryDays: days || 0,
+                                },
+                            );
+                        } else if (sysConfig.users) {
+                            const u = sysConfig.users.find(
+                                (usr) => usr.id === uuid,
+                            );
+                            if (u) {
+                                u.limitTotalReq = tReq;
+                                u.limitDailyReq = dReq;
+                                u.expiryMs = days
+                                    ? Date.now() + days * 86400000
+                                    : null;
+                                await cachedD1Put(
+                                    env,
+                                    "sys_config",
+                                    JSON.stringify(sysConfig),
+                                );
+                            }
+                        }
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+
+                        const panelUsers = await getPanelUsers();
+                        const detail = getSubDetail(uuid, panelUsers);
+                        await sendOrEdit(
+                            chatId,
+                            `✅ Limits Updated!`,
+                            detail.kb,
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step === "sub_search") {
+                        const query = text.toLowerCase();
+                        const panelUsers = await getPanelUsers();
+                        const users = panelUsers || [];
+                        const results = users.filter(
+                            (u) =>
+                                u.name.toLowerCase().includes(query) ||
+                                u.id.toLowerCase().includes(query),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        if (results.length === 0) {
+                            const kb = {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: t("btn_main_menu"),
+                                            callback_data: "main_menu",
+                                        },
+                                    ],
+                                ],
+                            };
+                            await sendOrEdit(
+                                chatId,
+                                `🔍 No users found for "${text}"`,
+                                kb,
+                            );
+                        } else {
+                            let searchText = `🔍 **Search Results** (${results.length})\n━━━━━━━━━━━━━━━━\n`;
+                            const inline_keyboard = [];
+                            results.slice(0, 10).forEach((u) => {
+                                const statusEmoji = u.isPaused
+                                    ? "⏸️"
+                                    : u.expiryMs && Date.now() > u.expiryMs
+                                      ? "🔴"
+                                      : "🟢";
+                                searchText += `${statusEmoji} **${u.name}**\n`;
+                                inline_keyboard.push([
+                                    {
+                                        text: `👤 ${u.name}`,
+                                        callback_data: `sub_detail:${u.id}`,
+                                    },
+                                ]);
+                            });
+                            inline_keyboard.push([
+                                {
+                                    text: t("btn_main_menu"),
+                                    callback_data: "main_menu",
+                                },
+                            ]);
+                            await sendOrEdit(chatId, searchText, {
+                                inline_keyboard,
+                            });
+                        }
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step.startsWith("sub_extend_days:")) {
+                        const uuid = state.step.replace("sub_extend_days:", "");
+                        const days = parseInt(text);
+                        if (isNaN(days) || days <= 0) {
+                            await sendOrEdit(chatId, t("msg_invalid"));
+                            return new Response("OK", { status: 200 });
+                        }
+                        if (isRemotePanel) {
+                            await remotePanelWriteAction(
+                                activePanel,
+                                "PUT",
+                                uuid,
+                                { key: activePanel.apiKey, expiryDays: days },
+                            );
+                        } else if (sysConfig.users) {
+                            const u = sysConfig.users.find(
+                                (usr) => usr.id === uuid,
+                            );
+                            if (u) {
+                                if (u.expiryMs) {
+                                    u.expiryMs += days * 86400000;
+                                } else {
+                                    u.expiryMs = Date.now() + days * 86400000;
+                                }
+                                if (
+                                    u.isPaused &&
+                                    u.disabledReason &&
+                                    u.disabledReason.includes("Expiration")
+                                ) {
+                                    u.isPaused = false;
+                                    u.disabledReason = null;
+                                    u.disabledAt = null;
+                                }
+                                await cachedD1Put(
+                                    env,
+                                    "sys_config",
+                                    JSON.stringify(sysConfig),
+                                );
+                            }
+                        }
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        const panelUsers = await getPanelUsers();
+                        const detail = getSubDetail(uuid, panelUsers);
+                        const msg = t("msg_expiry_extended").replace(
+                            "{days}",
+                            days,
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${msg}\n\n${detail.text}`,
+                            detail.kb,
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step.startsWith("sub_edit_notes:")) {
+                        const uuid = state.step.replace("sub_edit_notes:", "");
+                        if (isRemotePanel) {
+                            await remotePanelWriteAction(
+                                activePanel,
+                                "PUT",
+                                uuid,
+                                { key: activePanel.apiKey, notes: text },
+                            );
+                        } else if (sysConfig.users) {
+                            const u = sysConfig.users.find(
+                                (usr) => usr.id === uuid,
+                            );
+                            if (u) {
+                                u.notes = text;
+                                await cachedD1Put(
+                                    env,
+                                    "sys_config",
+                                    JSON.stringify(sysConfig),
+                                );
+                            }
+                        }
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        const panelUsers = await getPanelUsers();
+                        const detail = getSubDetail(uuid, panelUsers);
+                        await sendOrEdit(
+                            chatId,
+                            `✅ Notes updated!`,
+                            detail.kb,
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step.startsWith("sub_edit_device:")) {
+                        const uuid = state.step.replace("sub_edit_device:", "");
+                        const limit = parseInt(text);
+                        if (isNaN(limit) || limit < 0) {
+                            await sendOrEdit(chatId, t("msg_invalid"));
+                            return new Response("OK", { status: 200 });
+                        }
+                        if (isRemotePanel) {
+                            await remotePanelWriteAction(
+                                activePanel,
+                                "PUT",
+                                uuid,
+                                {
+                                    key: activePanel.apiKey,
+                                    maxConfigs: limit > 0 ? limit : null,
+                                },
+                            );
+                        } else if (sysConfig.users) {
+                            const u = sysConfig.users.find(
+                                (usr) => usr.id === uuid,
+                            );
+                            if (u) {
+                                u.maxConfigs = limit > 0 ? limit : null;
+                                await cachedD1Put(
+                                    env,
+                                    "sys_config",
+                                    JSON.stringify(sysConfig),
+                                );
+                            }
+                        }
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        const panelUsers = await getPanelUsers();
+                        const detail = getSubDetail(uuid, panelUsers);
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("config_limit_updated")}`,
+                            detail.kb,
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+
+                    if (state.step === "tg_edit_dns") {
+                        sysConfig.resolveIp = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_dns")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_settings_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_relay") {
+                        sysConfig.backupRelay = text || "";
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_relay")}: \`${text || "—"}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_settings_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_nat64") {
+                        sysConfig.nat64Prefix = text || "";
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_nat64")}: \`${text || "—"}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_settings_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_maintenance") {
+                        sysConfig.maintenanceHost = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_maintenance")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_clean_ips") {
+                        sysConfig.cleanIps = text || "";
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_clean_ips")}: \`${text || "—"}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_prefix") {
+                        sysConfig.namePrefix = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_prefix")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_pass") {
+                        sysConfig.masterKey = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_pass")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_settings_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_strategy") {
+                        sysConfig.nameStrategy = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_strategy")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_tg_token") {
+                        if (text !== "/skip") sysConfig.tgToken = text;
+                        tgState[chatId] = { step: "tg_edit_tg_chat" };
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `2️⃣ Chat ID: \`${sysConfig.tgChatId || "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "❌ " + t("btn_cancel"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_tg_chat") {
+                        if (text !== "/skip") sysConfig.tgChatId = text;
+                        tgState[chatId] = { step: "tg_edit_tg_admin" };
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `3️⃣ Admin ID: \`${sysConfig.tgAdminId || "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "❌ " + t("btn_cancel"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_tg_admin") {
+                        if (text !== "/skip") sysConfig.tgAdminId = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_tg_settings")} saved!`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_cf_acc") {
+                        if (text !== "/skip") sysConfig.cfAccountId = text;
+                        tgState[chatId] = { step: "tg_edit_cf_token" };
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `2️⃣ CF API Token: \`${sysConfig.cfApiToken ? "***" + sysConfig.cfApiToken.slice(-4) : "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "❌ " + t("btn_cancel"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_cf_token") {
+                        if (text !== "/skip") sysConfig.cfApiToken = text;
+                        tgState[chatId] = { step: "tg_edit_cf_worker" };
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `3️⃣ CF Worker Name: \`${sysConfig.cfWorkerName || "—"}\`\n\n${t("tg_new_val")}\n_send /skip to keep current_`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "❌ " + t("btn_cancel"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_cf_worker") {
+                        if (text !== "/skip") sysConfig.cfWorkerName = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_cf_settings")} saved!`,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_advanced_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
+                    }
+                    if (state.step === "tg_edit_ports") {
+                        sysConfig.socketPorts = text;
+                        await cachedD1Put(
+                            env,
+                            "sys_config",
+                            JSON.stringify(sysConfig),
+                        );
+                        tgState[chatId] = null;
+                        ctx?.waitUntil(
+                            d1Put(
+                                env,
+                                "tg_bot_state",
+                                JSON.stringify(tgState),
+                            ).catch(() => {}),
+                        );
+                        await sendOrEdit(
+                            chatId,
+                            `✅ ${t("tg_ports")}: \`${text}\``,
+                            {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "◀️ " + t("btn_back"),
+                                            callback_data: "tg_settings_menu",
+                                        },
+                                    ],
+                                ],
+                            },
+                        );
+                        return new Response("OK", { status: 200 });
                     }
                 }
 
@@ -5801,9 +7443,7 @@ async function buildUriProfile(
                         let randomJunk = Array.from(
                             { length: 11 },
                             () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
+                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                         ).join("");
                         let payloadTr = {
                             junk: randomJunk,
@@ -5865,9 +7505,7 @@ async function buildUriProfile(
                             let randomJunk2 = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadTr2 = {
                                 junk: randomJunk2,
@@ -6045,9 +7683,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
                         let randomJunk = Array.from(
                             { length: 11 },
                             () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
+                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                         ).join("");
                         let payloadVl = {
                             junk: randomJunk,
@@ -6086,9 +7722,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
                         let randomJunkTr = Array.from(
                             { length: 11 },
                             () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
+                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                         ).join("");
                         let payloadTr = {
                             junk: randomJunkTr,
@@ -6127,9 +7761,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
                             let randomJunk = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadVl = {
                                 junk: randomJunk,
@@ -6167,9 +7799,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
                             let randomJunk = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadTr = {
                                 junk: randomJunk,
@@ -6183,9 +7813,7 @@ async function buildYamlProfile(hostName, targetSub = null, allowInsecure = fals
                             let randomJunkDt = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadDt = {
                                 junk: randomJunkDt,
@@ -6508,9 +8136,7 @@ async function buildClashJsonProfile(
                         let randomJunk = Array.from(
                             { length: 11 },
                             () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
+                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                         ).join("");
                         let payloadVl = {
                             junk: randomJunk,
@@ -6580,9 +8206,7 @@ async function buildClashJsonProfile(
                         let randomJunk = Array.from(
                             { length: 11 },
                             () =>
-                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                    Math.floor(Math.random() * 62)
-                                ],
+                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                         ).join("");
                         let payloadTr = {
                             junk: randomJunk,
@@ -6654,9 +8278,7 @@ async function buildClashJsonProfile(
                             let randomJunk = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadVl = {
                                 junk: randomJunk,
@@ -6721,9 +8343,7 @@ async function buildClashJsonProfile(
                             let randomJunk = Array.from(
                                 { length: 11 },
                                 () =>
-                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                        Math.floor(Math.random() * 62)
-                                    ],
+                                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                             ).join("");
                             let payloadTr = {
                                 junk: randomJunk,
@@ -7225,9 +8845,7 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                     junk: Array.from(
                                         { length: 11 },
                                         () =>
-                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                                Math.floor(Math.random() * 62)
-                                            ],
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                                     ).join(""),
                                     protocol: "vl",
                                     mode: "proxyip",
@@ -7285,9 +8903,7 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                     junk: Array.from(
                                         { length: 11 },
                                         () =>
-                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                                Math.floor(Math.random() * 62)
-                                            ],
+                                            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                                     ).join(""),
                                     protocol: "tr",
                                     mode: "proxyip",
@@ -7347,9 +8963,7 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                         junk: Array.from(
                                             { length: 11 },
                                             () =>
-                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                                    Math.floor(Math.random() * 62)
-                                                ],
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                                         ).join(""),
                                         protocol: "vl",
                                         mode: "proxyip",
@@ -7404,9 +9018,7 @@ async function buildSingBoxJsonProfile(hostName, targetSub = null, allowInsecure
                                         junk: Array.from(
                                             { length: 11 },
                                             () =>
-                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-                                                    Math.floor(Math.random() * 62)
-                                                ],
+                                                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)],
                                         ).join(""),
                                         protocol: "tr",
                                         mode: "proxyip",
