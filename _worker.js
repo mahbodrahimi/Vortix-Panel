@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.0
+ * Version: 3.1.1
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.0";
+const CURRENT_VERSION = "3.1.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
