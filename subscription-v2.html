@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" href="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" type="image/png" />
+    <title>Vortix Subscription</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/gh/itsyebekhe/nahan@main/tailwindcss.js">
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: 'var(--color-primary)',
+                        darkbg: 'var(--color-bg)',
+                        darkcard: 'var(--color-surface)',
+                        darkborder: 'var(--color-border)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-text: #f1f5f9;
+            --color-text-muted: #94a3b8;
+            --color-primary: #818cf8;
+            --color-primary-hover: #6366f1;
+            --color-bg: #090d16;
+            --color-surface: #151b26;
+            --color-surface-alt: #1e293b;
+            --color-border: #222b3c;
+            --color-success: #34d399;
+            --color-warning: #fbbf24;
+            --color-danger: #f87171;
+            --color-amber-text: #f59e0b;
+            --color-muted: #475569;
+            --slate-50: #090d16;
+            --slate-100: #151b26;
+            --slate-200: #222b3c;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #cbd5e1;
+            --slate-800: #0f172a;
+            --slate-900: #090d16;
+            --accent: var(--color-primary);
+            --amber-text: var(--color-amber-text);
+            --progress-bg: rgba(99, 102, 241, 0.15);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            transition: background 0.3s ease, color 0.3s ease;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 60%);
+        }
+        .card {
+            max-width: 480px;
+            width: 100%;
+            background: var(--color-surface);
+            border-radius: 2rem;
+            border: 1px solid var(--color-border);
+            padding: 2rem 1.75rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            animation: fadeUp 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 50%;
+        }
+        .card::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: -80px;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 50%;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.75rem;
+            position: relative;
+            z-index: 1;
+        }
+        .header img {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--color-primary), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header .badge {
+            margin-left: auto;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            letter-spacing: 0.04em;
+        }
+        .user-section {
+            background: var(--color-surface-alt);
+            border-radius: 1.25rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--color-border);
+            position: relative;
+            z-index: 1;
+        }
+        .user-section .name {
+            font-size: 1.35rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .user-section .name .status-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.2rem 0.7rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .status-badge.active {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--color-success);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+        }
+        .status-badge.paused {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--color-warning);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+        .status-badge.expired {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--color-danger);
+            border: 1px solid rgba(248, 113, 113, 0.25);
+        }
+        .status-badge.limit {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--color-danger);
+            border: 1px solid rgba(248, 113, 113, 0.25);
+        }
+        .status-badge.dailyLimit {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--color-warning);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+        .user-section .uuid {
+            font-size: 0.7rem;
+            font-family: 'monospace';
+            color: var(--color-text-muted);
+            margin-top: 0.3rem;
+            opacity: 0.7;
+            word-break: break-all;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .stat-card {
+            background: var(--color-surface-alt);
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--color-border);
+        }
+        .stat-card .label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-muted);
+            opacity: 0.7;
+        }
+        .stat-card .value {
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0.2rem;
+            line-height: 1.2;
+        }
+        .stat-card .sub {
+            font-size: 0.65rem;
+            color: var(--color-text-muted);
+            margin-top: 0.15rem;
+        }
+        .stat-card .value.green {
+            color: var(--color-success);
+        }
+        .stat-card .value.amber {
+            color: var(--color-amber-text);
+        }
+        .stat-card .value.purple {
+            color: var(--color-primary);
+        }
+        .stat-card .value.red {
+            color: var(--color-danger);
+        }
+        .progress-section {
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .progress-section .progress-item {
+            margin-bottom: 1rem;
+        }
+        .progress-section .progress-item:last-child {
+            margin-bottom: 0;
+        }
+        .progress-section .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--color-text-muted);
+        }
+        .progress-section .progress-header .percent {
+            font-weight: 700;
+            color: var(--color-text);
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: var(--progress-bg);
+            border-radius: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-bg .fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s ease;
+            background: linear-gradient(90deg, var(--color-primary), #a78bfa);
+        }
+        .progress-bar-bg .fill.warning {
+            background: linear-gradient(90deg, var(--color-amber-text), #f59e0b);
+        }
+        .progress-bar-bg .fill.danger {
+            background: linear-gradient(90deg, var(--color-danger), #ef4444);
+        }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-top: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .actions .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            background: var(--color-surface-alt);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        .actions .btn:hover {
+            border-color: var(--color-primary);
+            background: rgba(99, 102, 241, 0.08);
+            transform: translateY(-1px);
+        }
+        .actions .btn-primary {
+            background: var(--color-primary);
+            color: #fff;
+            border-color: var(--color-primary);
+        }
+        .actions .btn-primary:hover {
+            background: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+            transform: translateY(-1px);
+        }
+        .actions .btn-secondary {
+            background: transparent;
+            border-color: var(--color-border);
+        }
+        .actions .btn-secondary:hover {
+            border-color: var(--color-primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .actions .btn .icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .footer {
+            margin-top: 1.75rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            opacity: 0.6;
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--color-border);
+            padding-top: 1.25rem;
+        }
+        .footer a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .footer .support-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+        }
+        .footer .support-link svg {
+            width: 16px;
+            height: 16px;
+        }
+        .expiry-info {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            margin-top: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .expiry-info .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .expiry-info .dot.green {
+            background: var(--color-success);
+        }
+        .expiry-info .dot.red {
+            background: var(--color-danger);
+        }
+        .expiry-info .dot.amber {
+            background: var(--color-amber-text);
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-group .btn {
+            flex: 1;
+            font-size: 0.75rem;
+            padding: 0.6rem 0.8rem;
+        }
+        @media (max-width: 420px) {
+            .card {
+                padding: 1.25rem 1rem;
+                border-radius: 1.5rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+            .stat-card {
+                padding: 0.75rem 1rem;
+            }
+            .stat-card .value {
+                font-size: 1.1rem;
+            }
+            .user-section .name {
+                font-size: 1.1rem;
+            }
+            .header h1 {
+                font-size: 1rem;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                --color-text: #0f172a;
+                --color-text-muted: #475569;
+                --color-primary: #6366f1;
+                --color-primary-hover: #4f46e5;
+                --color-bg: #f8fafc;
+                --color-surface: #ffffff;
+                --color-surface-alt: #f1f5f9;
+                --color-border: #e2e8f0;
+                --color-success: #10b981;
+                --color-warning: #f59e0b;
+                --color-danger: #ef4444;
+                --color-amber-text: #d97706;
+                --color-muted: #94a3b8;
+                --slate-50: #f8fafc;
+                --slate-100: #f1f5f9;
+                --slate-200: #e2e8f0;
+                --slate-300: #cbd5e1;
+                --slate-400: #94a3b8;
+                --slate-500: #64748b;
+                --slate-600: #475569;
+                --slate-700: #334155;
+                --slate-800: #1e293b;
+                --slate-900: #0f172a;
+                --progress-bg: rgba(99, 102, 241, 0.10);
+            }
+            body {
+                background: var(--color-bg);
+                background-image: radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 60%);
+            }
+            .card {
+                background: var(--color-surface);
+                border-color: var(--color-border);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            }
+            .card::before {
+                background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+            }
+            .card::after {
+                background: radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, transparent 70%);
+            }
+            .user-section {
+                background: var(--color-surface-alt);
+                border-color: var(--color-border);
+            }
+            .stat-card {
+                background: var(--color-surface-alt);
+                border-color: var(--color-border);
+            }
+            .actions .btn {
+                background: var(--color-surface-alt);
+                color: var(--color-text);
+                border-color: var(--color-border);
+            }
+            .actions .btn:hover {
+                border-color: var(--color-primary);
+                background: rgba(99, 102, 241, 0.06);
+            }
+            .actions .btn-primary {
+                background: var(--color-primary);
+                color: #fff;
+                border-color: var(--color-primary);
+            }
+            .actions .btn-primary:hover {
+                background: var(--color-primary-hover);
+                border-color: var(--color-primary-hover);
+            }
+            .actions .btn-secondary {
+                background: transparent;
+                border-color: var(--color-border);
+            }
+            .actions .btn-secondary:hover {
+                border-color: var(--color-primary);
+                background: rgba(99, 102, 241, 0.04);
+            }
+            .footer {
+                border-top-color: var(--color-border);
+            }
+            .header .badge {
+                background: rgba(99, 102, 241, 0.10);
+                color: var(--color-primary);
+                border-color: rgba(99, 102, 241, 0.20);
+            }
+            .status-badge.active {
+                background: rgba(16, 185, 129, 0.12);
+                color: #059669;
+                border-color: rgba(16, 185, 129, 0.20);
+            }
+            .status-badge.paused {
+                background: rgba(245, 158, 11, 0.12);
+                color: #b45309;
+                border-color: rgba(245, 158, 11, 0.20);
+            }
+            .status-badge.expired {
+                background: rgba(239, 68, 68, 0.12);
+                color: #dc2626;
+                border-color: rgba(239, 68, 68, 0.20);
+            }
+            .status-badge.limit {
+                background: rgba(239, 68, 68, 0.12);
+                color: #dc2626;
+                border-color: rgba(239, 68, 68, 0.20);
+            }
+            .status-badge.dailyLimit {
+                background: rgba(245, 158, 11, 0.12);
+                color: #b45309;
+                border-color: rgba(245, 158, 11, 0.20);
+            }
+        }
+        @media (prefers-color-scheme: light) and (max-width: 420px) {
+            .card {
+                padding: 1.25rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- Header -->
+        <div class="header">
+            <img src="https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/icon.png" alt="Vortix" />
+            <h1>Vortix Gateway</h1>
+            <span class="badge">v3.1.4</span>
+        </div>
+
+        <!-- User Section -->
+        <div class="user-section">
+            <div class="name">
+                <span id="userName">__USER_NAME__</span>
+                <span class="status-badge" id="statusBadge">● __STATUS_CODE__</span>
+            </div>
+            <div class="uuid" id="userId">🆔 __USER_ID__</div>
+            <div class="expiry-info" id="expiryInfo">
+                <span class="dot" id="expiryDot"></span>
+                <span id="expiryText">📅 Expiry: __EXPIRY_DATE__</span>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">📊 Total</div>
+                <div class="value purple" id="totalValue">__TOTAL_GB__ GB</div>
+                <div class="sub">Limit: __LIMIT_TOTAL_GB__ GB</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">📅 Today</div>
+                <div class="value amber" id="dailyValue">__DAILY_GB__ GB</div>
+                <div class="sub">Limit: __LIMIT_DAILY_GB__ GB</div>
+            </div>
+        </div>
+
+        <!-- Progress Bars -->
+        <div class="progress-section">
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span>Total Usage</span>
+                    <span class="percent" id="totalPercent">__TOTAL_PERCENT__%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="fill" id="totalFill" style="width: __TOTAL_PERCENT__%;"></div>
+                </div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-header">
+                    <span>Daily Usage</span>
+                    <span class="percent" id="dailyPercent">__DAILY_PERCENT__%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="fill" id="dailyFill" style="width: __DAILY_PERCENT__%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+            <a href="__SYNC_NORMAL__" class="btn btn-primary" id="syncNormalBtn">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Open Subscription
+            </a>
+            <div class="btn-group">
+                <a href="__SYNC_NORMAL__" class="btn btn-secondary" id="syncNormalBtn2">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    Normal
+                </a>
+                <a href="__SYNC_RAW__" class="btn btn-secondary" id="syncRawBtn">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                    </svg>
+                    Raw
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span>Vortix Gateway · Secure Proxy</span>
+            <br />
+            <a href="__TELEGRAM_SUPPORT_LINK__" target="_blank" class="support-link" id="telegramSupportLink">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                Support
+            </a>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---- Helper: update progress bar color based on percentage ----
+            function updateProgressColor(fillEl, percent) {
+                if (!fillEl) return;
+                const p = parseFloat(percent) || 0;
+                fillEl.classList.remove('warning', 'danger');
+                if (p >= 85) fillEl.classList.add('danger');
+                else if (p >= 60) fillEl.classList.add('warning');
+            }
+
+            // ---- Update status badge styling ----
+            function updateStatusBadge() {
+                const badge = document.getElementById('statusBadge');
+                if (!badge) return;
+                const text = badge.textContent || '';
+                const status = text.replace('●', '').trim().toLowerCase();
+                badge.className = 'status-badge';
+                if (status === 'active' || status === 'فعال') {
+                    badge.classList.add('active');
+                    badge.textContent = '● Active';
+                } else if (status === 'paused' || status === 'متوقف') {
+                    badge.classList.add('paused');
+                    badge.textContent = '● Paused';
+                } else if (status === 'expired' || status === 'منقضی') {
+                    badge.classList.add('expired');
+                    badge.textContent = '● Expired';
+                } else if (status === 'limit' || status === 'محدودیت') {
+                    badge.classList.add('limit');
+                    badge.textContent = '● Limit Reached';
+                } else if (status === 'dailylimit' || status === 'محدودیت روزانه') {
+                    badge.classList.add('dailyLimit');
+                    badge.textContent = '● Daily Limit';
+                } else {
+                    badge.classList.add('active');
+                    badge.textContent = '● Active';
+                }
+            }
+
+            // ---- Update expiry dot ----
+            function updateExpiryDot() {
+                const dot = document.getElementById('expiryDot');
+                const text = document.getElementById('expiryText');
+                if (!dot || !text) return;
+                const t = text.textContent || '';
+                const isExpired = t.includes('Expired') || t.includes('منقضی');
+                const isNear = t.includes('day') && !isExpired;
+                dot.className = 'dot';
+                if (isExpired) dot.classList.add('red');
+                else if (isNear) dot.classList.add('amber');
+                else dot.classList.add('green');
+            }
+
+            // ---- Update progress fill colors ----
+            function updateProgressColors() {
+                const totalFill = document.getElementById('totalFill');
+                const dailyFill = document.getElementById('dailyFill');
+                const totalP = document.getElementById('totalPercent');
+                const dailyP = document.getElementById('dailyPercent');
+                if (totalFill && totalP) {
+                    const p = totalP.textContent.replace('%', '').trim();
+                    updateProgressColor(totalFill, p);
+                }
+                if (dailyFill && dailyP) {
+                    const p = dailyP.textContent.replace('%', '').trim();
+                    updateProgressColor(dailyFill, p);
+                }
+            }
+
+            // ---- Run all updates ----
+            function refreshUI() {
+                updateStatusBadge();
+                updateExpiryDot();
+                updateProgressColors();
+            }
+
+            // ---- Watch for DOM changes (placeholders get replaced by worker) ----
+            const observer = new MutationObserver(function() {
+                refreshUI();
+            });
+
+            // Start observing after DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    refreshUI();
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+                });
+            } else {
+                refreshUI();
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+            }
+
+            // Also run after a short delay to catch any late replacements
+            setTimeout(refreshUI, 300);
+            setTimeout(refreshUI, 800);
+
+            // ---- Support link fallback (if placeholder not replaced) ----
+            const supportLink = document.getElementById('telegramSupportLink');
+            if (supportLink) {
+                const href = supportLink.getAttribute('href');
+                if (!href || href === '__TELEGRAM_SUPPORT_LINK__') {
+                    supportLink.setAttribute('href', 'https://t.me/VortixVpn');
+                }
+            }
+        })();
+    </script>
+
+</body>
+</html>
