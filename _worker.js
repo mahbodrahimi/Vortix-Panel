@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.1
+ * Version: 3.1.2
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.1";
+const CURRENT_VERSION = "3.1.2";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -27,7 +27,7 @@ const safeBtoa = (str) => {
 };
 
 const SYSTEM_DEFAULTS = {
-    version: CURRENT_VERSION, // <-- اضافه شد
+    version: CURRENT_VERSION,
     name: "",
     apiRoute: "sync",
     maintenanceHost: "https://www.ubuntu.com, https://www.docker.com",
@@ -56,7 +56,7 @@ const SYSTEM_DEFAULTS = {
     silentAlerts: false,
     githubRepo: "mahbodrahimi/Vortix-Panel",
     nameStrategy: "default",
-    namePrefix: "Core",
+    namePrefix: "", // changed from "Core" to empty
     tgBotLang: "fa",
     users: [],
     subUserAgent: "",
@@ -76,6 +76,7 @@ const SYSTEM_DEFAULTS = {
     fakeConfigs: [
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true },
+        { name: "🚀 @VortixVpn", enabled: true },
     ],
 };
 
@@ -790,17 +791,23 @@ export default {
                     let isValidUser = false;
                     if (hasMultiUser) {
                         if (targetSub) {
+                            // Only search by ID (UUID)
                             targetUser = sysConfig.users.find(
-                                (u) =>
-                                    u.name.toLowerCase() ===
-                                        targetSub.toLowerCase() ||
-                                    u.id === targetSub,
+                                (u) => u.id === targetSub
                             );
                             if (targetUser) isValidUser = true;
                         }
                     } else {
-                        isValidUser = true;
-                        targetUser = { id: activeDeviceId, name: "Default" };
+                        // If no users exist, block
+                        isValidUser = false;
+                    }
+
+                    // ---- Block if no users at all ----
+                    if (!hasMultiUser) {
+                        return new Response(
+                            JSON.stringify({ error: "No active users configured" }),
+                            { status: 403, headers: { "Content-Type": "application/json" } }
+                        );
                     }
 
                     const acceptHeader = (
@@ -907,7 +914,7 @@ export default {
 
                     if (hasMultiUser && !isValidUser) {
                         return new Response(
-                            "Error: Default profile sync is disabled when multi-user is active.",
+                            "Error: Invalid subscription ID.",
                             { status: 403 },
                         );
                     }
@@ -1695,9 +1702,7 @@ async function handleUsersApi(request, env, ctx) {
 
         if (method === "GET" && userId) {
             const u = (sysConfig.users || []).find(
-                (usr) =>
-                    usr.id === userId ||
-                    usr.name.toLowerCase() === userId.toLowerCase(),
+                (usr) => usr.id === userId || usr.name.toLowerCase() === userId.toLowerCase(),
             );
             if (!u)
                 return new Response(
@@ -1725,7 +1730,7 @@ async function handleUsersApi(request, env, ctx) {
             else if (u.isPaused) status = "paused";
             else if (isExpired) status = "expired";
             const hostName = new URL(request.url).hostname;
-            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(u.name)}`;
+            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${u.id}`; // Use UUID
             return new Response(
                 JSON.stringify({
                     success: true,
@@ -1810,7 +1815,7 @@ async function handleUsersApi(request, env, ctx) {
                 ).catch(() => {}),
             );
             const hostName = new URL(request.url).hostname;
-            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(name)}`;
+            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${newId}`; // Use UUID
             return new Response(
                 JSON.stringify({
                     success: true,
@@ -2573,6 +2578,8 @@ async function handleAuth(request, hostName, ctx, env) {
                     protocol = customUrl.protocol.replace(":", "");
                 } catch (e) {}
             }
+            // Use getAllProfiles which now returns only valid users
+            let profiles = getAllProfiles();
             return new Response(
                 JSON.stringify({
                     success: true,
@@ -2597,12 +2604,10 @@ async function handleAuth(request, hostName, ctx, env) {
                         sysUsageCache && sysUsageCache.users
                             ? sysUsageCache.users
                             : {},
-                    version: CURRENT_VERSION, // <-- نسخه فعلی به داشبورد ارسال می‌شود
-                    profiles: getAllProfiles().map((p) => {
-                        let subSuffix =
-                            p.name === "Default"
-                                ? ""
-                                : "?sub=" + encodeURIComponent(p.name);
+                    version: CURRENT_VERSION,
+                    profiles: profiles.map((p) => {
+                        // Use UUID for sub parameter
+                        let subSuffix = "?sub=" + p.id;
                         return {
                             name: p.name,
                             id: p.id,
@@ -3590,7 +3595,8 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                 : isExp
                   ? t("dash_expired")
                   : t("active");
-            const subSync = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(u.name)}`;
+            // Use UUID for sub link
+            const subSync = `https://${hostName}/${sysConfig.apiRoute}?sub=${u.id}`;
             const maxCfgTxt = u.maxConfigs || t("unlimited");
             const notesTxt = u.notes || t("lbl_none");
             const modeTxt = u.userMode
@@ -4653,7 +4659,7 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                           (lpUrls.join(", ").length > 40 ? "..." : "")
                         : "—";
                     const strategyTxt = sysConfig.nameStrategy || "default";
-                    const prefixTxt = sysConfig.namePrefix || "Core";
+                    const prefixTxt = sysConfig.namePrefix || "";
                     const maintenanceTxt = sysConfig.maintenanceHost
                         ? sysConfig.maintenanceHost.substring(0, 30) + "..."
                         : "—";
@@ -6305,7 +6311,10 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                         p.id.replace(/-/g, "").toLowerCase() ===
                         activeClientHash,
                 );
-                if (!activeProfile) return false;
+                if (!activeProfile) {
+                    webSocket.close();
+                    return false;
+                }
                 if (configEntry.relayIp)
                     activeProfile = {
                         ...activeProfile,
@@ -6338,7 +6347,10 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                             p.id.replace(/-/g, "").toLowerCase() === clientHash,
                     );
                 }
-                if (!activeProfile) return false;
+                if (!activeProfile) {
+                    webSocket.close();
+                    return false;
+                }
                 activeClientHash = activeProfile.id
                     .replace(/-/g, "")
                     .toLowerCase();
@@ -6409,7 +6421,10 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                         p.id.replace(/-/g, "").toLowerCase() ===
                         activeClientHash,
                 );
-                if (!activeProfile) return false;
+                if (!activeProfile) {
+                    webSocket.close();
+                    return false;
+                }
                 if (configEntry.relayIp)
                     activeProfile = {
                         ...activeProfile,
@@ -6419,7 +6434,10 @@ async function startDataPipe(webSocket, env, ctx, wsRelayIdx) {
                 activeProfile = getAllProfiles().find(
                     (p) => getTrojanHash(p.id) === clientHashHex,
                 );
-                if (!activeProfile) return false;
+                if (!activeProfile) {
+                    webSocket.close();
+                    return false;
+                }
                 activeClientHash = activeProfile.id
                     .replace(/-/g, "")
                     .toLowerCase();
@@ -6604,11 +6622,8 @@ function getSubscriptionStats(targetSub = null) {
 
     let hasMultiUser = sysConfig.users && sysConfig.users.length > 0;
     if (hasMultiUser && targetSub) {
-        let user = sysConfig.users.find(
-            (u) =>
-                u.name.toLowerCase() === targetSub.toLowerCase() ||
-                u.id === targetSub,
-        );
+        // Find user by ID only
+        let user = sysConfig.users.find((u) => u.id === targetSub);
         if (user) {
             name = user.name;
             id = user.id;
@@ -6647,6 +6662,8 @@ function getSubscriptionStats(targetSub = null) {
 }
 
 function getFakeConfigNames(targetSub = null) {
+    let profiles = getAllProfiles(targetSub);
+    if (profiles.length === 0) return [];
     let stats = getSubscriptionStats(targetSub);
     let configs = sysConfig.fakeConfigs || [
         { name: "📊 {usage}", enabled: true },
@@ -6707,7 +6724,7 @@ function getCleanIpsWithNames(hostName, userCleanIps = null) {
 }
 
 function getAllProfiles(targetSub = null) {
-    let list = [{ id: activeDeviceId, name: "Default" }];
+    let list = [];
 
     if (sysConfig.users && sysConfig.users.length > 0) {
         let now = Date.now();
@@ -6762,9 +6779,8 @@ function getAllProfiles(targetSub = null) {
     }
 
     if (targetSub) {
-        list = list.filter(
-            (p) => p.name.toLowerCase() === targetSub.toLowerCase() || p.id === targetSub,
-        );
+        // Filter by ID only
+        list = list.filter((p) => p.id === targetSub);
     }
     return list;
 }
@@ -7061,7 +7077,7 @@ function getConfigName(
     ipName = "",
     isDirect = false
 ) {
-    let prefix = sysConfig.namePrefix || "Core";
+    let prefix = sysConfig.namePrefix || "";
     let strategy = sysConfig.nameStrategy || "default";
     let cleanName = profileName === "Default" ? "" : `-${profileName}`;
     let typeLab = type === "alpha" ? "V" : "T";
