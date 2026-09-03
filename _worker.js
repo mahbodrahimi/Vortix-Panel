@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.2
+ * Version: 3.1.3
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.2";
+const CURRENT_VERSION = "3.1.3";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -55,8 +55,8 @@ const SYSTEM_DEFAULTS = {
     isPaused: false,
     silentAlerts: false,
     githubRepo: "mahbodrahimi/Vortix-Panel",
-    nameStrategy: "default",
-    namePrefix: "", // changed from "Core" to empty
+    nameStrategy: "{FLAG} {USER}", // changed from "default"
+    namePrefix: "",
     tgBotLang: "fa",
     users: [],
     subUserAgent: "",
@@ -959,9 +959,13 @@ export default {
                         let usedBytes = Math.floor(
                             totalReqs * (1073741824 / 6000),
                         );
-                        let limitBytes = Math.floor(
-                            limitTotal * (1073741824 / 6000),
-                        );
+                        // Fix: if limitTotal is 0 or null, set a huge limit (99999 GB)
+                        let limitBytes;
+                        if (limitTotal && limitTotal > 0) {
+                            limitBytes = Math.floor(limitTotal * (1073741824 / 6000));
+                        } else {
+                            limitBytes = 99999 * 1073741824; // 99999 GB in bytes
+                        }
                         let expireSec = expiryMs
                             ? Math.floor(expiryMs / 1000)
                             : 0;
@@ -1671,9 +1675,12 @@ async function handleUsersApi(request, env, ctx) {
                 const usedBytes = Math.floor(
                     (sysU.reqs || 0) * (1073741824 / 6000),
                 );
-                const limitBytes = u.limitTotalReq
-                    ? Math.floor(u.limitTotalReq * (1073741824 / 6000))
-                    : 0;
+                let limitBytes = 0;
+                if (u.limitTotalReq && u.limitTotalReq > 0) {
+                    limitBytes = Math.floor(u.limitTotalReq * (1073741824 / 6000));
+                } else {
+                    limitBytes = 99999 * 1073741824; // huge limit
+                }
                 const isExpired = u.expiryMs && Date.now() > u.expiryMs;
                 let status = "active";
                 if (u.isPaused && u.disabledReason) status = "auto-disabled";
@@ -1721,9 +1728,12 @@ async function handleUsersApi(request, env, ctx) {
             const usedBytes = Math.floor(
                 (sysU.reqs || 0) * (1073741824 / 6000),
             );
-            const limitBytes = u.limitTotalReq
-                ? Math.floor(u.limitTotalReq * (1073741824 / 6000))
-                : 0;
+            let limitBytes = 0;
+            if (u.limitTotalReq && u.limitTotalReq > 0) {
+                limitBytes = Math.floor(u.limitTotalReq * (1073741824 / 6000));
+            } else {
+                limitBytes = 99999 * 1073741824;
+            }
             const isExpired = u.expiryMs && Date.now() > u.expiryMs;
             let status = "active";
             if (u.isPaused && u.disabledReason) status = "auto-disabled";
