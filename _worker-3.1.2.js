@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.1
+ * Version: 3.1.2
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.1";
+const CURRENT_VERSION = "3.1.2";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -76,6 +76,7 @@ const SYSTEM_DEFAULTS = {
     fakeConfigs: [
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true },
+        { name: "🚀 @VortixVpn", enabled: true },
     ],
 };
 
@@ -790,20 +791,18 @@ export default {
                     let isValidUser = false;
                     if (hasMultiUser) {
                         if (targetSub) {
+                            // Only search by ID (UUID)
                             targetUser = sysConfig.users.find(
-                                (u) =>
-                                    u.name.toLowerCase() ===
-                                        targetSub.toLowerCase() ||
-                                    u.id === targetSub,
+                                (u) => u.id === targetSub
                             );
                             if (targetUser) isValidUser = true;
                         }
                     } else {
-                        // If no users exist, isValidUser stays false, so we block
+                        // If no users exist, block
                         isValidUser = false;
                     }
 
-                    // ---- NEW: Block if no users at all ----
+                    // ---- Block if no users at all ----
                     if (!hasMultiUser) {
                         return new Response(
                             JSON.stringify({ error: "No active users configured" }),
@@ -915,7 +914,7 @@ export default {
 
                     if (hasMultiUser && !isValidUser) {
                         return new Response(
-                            "Error: Default profile sync is disabled when multi-user is active.",
+                            "Error: Invalid subscription ID.",
                             { status: 403 },
                         );
                     }
@@ -1703,9 +1702,7 @@ async function handleUsersApi(request, env, ctx) {
 
         if (method === "GET" && userId) {
             const u = (sysConfig.users || []).find(
-                (usr) =>
-                    usr.id === userId ||
-                    usr.name.toLowerCase() === userId.toLowerCase(),
+                (usr) => usr.id === userId || usr.name.toLowerCase() === userId.toLowerCase(),
             );
             if (!u)
                 return new Response(
@@ -1733,7 +1730,7 @@ async function handleUsersApi(request, env, ctx) {
             else if (u.isPaused) status = "paused";
             else if (isExpired) status = "expired";
             const hostName = new URL(request.url).hostname;
-            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(u.name)}`;
+            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${u.id}`; // Use UUID
             return new Response(
                 JSON.stringify({
                     success: true,
@@ -1818,7 +1815,7 @@ async function handleUsersApi(request, env, ctx) {
                 ).catch(() => {}),
             );
             const hostName = new URL(request.url).hostname;
-            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(name)}`;
+            const subUrl = `https://${hostName}/${sysConfig.apiRoute}?sub=${newId}`; // Use UUID
             return new Response(
                 JSON.stringify({
                     success: true,
@@ -2609,10 +2606,8 @@ async function handleAuth(request, hostName, ctx, env) {
                             : {},
                     version: CURRENT_VERSION,
                     profiles: profiles.map((p) => {
-                        let subSuffix =
-                            p.name === "Default"
-                                ? ""
-                                : "?sub=" + encodeURIComponent(p.name);
+                        // Use UUID for sub parameter
+                        let subSuffix = "?sub=" + p.id;
                         return {
                             name: p.name,
                             id: p.id,
@@ -3600,7 +3595,8 @@ async function handleTelegramWebhook(request, env, hostName, ctx) {
                 : isExp
                   ? t("dash_expired")
                   : t("active");
-            const subSync = `https://${hostName}/${sysConfig.apiRoute}?sub=${encodeURIComponent(u.name)}`;
+            // Use UUID for sub link
+            const subSync = `https://${hostName}/${sysConfig.apiRoute}?sub=${u.id}`;
             const maxCfgTxt = u.maxConfigs || t("unlimited");
             const notesTxt = u.notes || t("lbl_none");
             const modeTxt = u.userMode
@@ -6626,11 +6622,8 @@ function getSubscriptionStats(targetSub = null) {
 
     let hasMultiUser = sysConfig.users && sysConfig.users.length > 0;
     if (hasMultiUser && targetSub) {
-        let user = sysConfig.users.find(
-            (u) =>
-                u.name.toLowerCase() === targetSub.toLowerCase() ||
-                u.id === targetSub,
-        );
+        // Find user by ID only
+        let user = sysConfig.users.find((u) => u.id === targetSub);
         if (user) {
             name = user.name;
             id = user.id;
@@ -6786,9 +6779,8 @@ function getAllProfiles(targetSub = null) {
     }
 
     if (targetSub) {
-        list = list.filter(
-            (p) => p.name.toLowerCase() === targetSub.toLowerCase() || p.id === targetSub,
-        );
+        // Filter by ID only
+        list = list.filter((p) => p.id === targetSub);
     }
     return list;
 }
