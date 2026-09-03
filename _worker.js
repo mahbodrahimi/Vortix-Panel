@@ -905,7 +905,7 @@ export default {
                                 html = html.replace(/__TOTAL_PROGRESS__/g, totalProgress);
                                 html = html.replace(/__DAILY_PROGRESS__/g, dailyProgress);
                                 // Telegram Support Link
-                                html = html.replace(/__TELEGRAM_SUPPORT_LINK__/g, sysConfig.telegramSupportLink || 'https://t.me/VortixVpn');
+                                html = html.replace(/__TELEGRAM_SUPPORT_LINK__/g, sysConfig.telegramSupportLink || 'https://');
                                 return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
                             } catch (e) {
                                 return new Response('Failed to load subscription page', { status: 502 });
