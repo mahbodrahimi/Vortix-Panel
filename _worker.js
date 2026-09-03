@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.3
+ * Version: 3.1.4
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.3";
+const CURRENT_VERSION = "3.1.4";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -55,7 +55,7 @@ const SYSTEM_DEFAULTS = {
     isPaused: false,
     silentAlerts: false,
     githubRepo: "mahbodrahimi/Vortix-Panel",
-    nameStrategy: "{FLAG} {USER}", // changed from "default"
+    nameStrategy: "{FLAG} {USER}",
     namePrefix: "",
     tgBotLang: "fa",
     users: [],
@@ -73,6 +73,7 @@ const SYSTEM_DEFAULTS = {
     upstreamUri: "",
     autoUpdate: false,
     autoUpdateFormat: "encoded",
+    telegramSupportLink: "https://t.me/VortixVpn",
     fakeConfigs: [
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true },
@@ -837,7 +838,7 @@ export default {
 
                     if (isRealBrowser && !isCustomUaAllowed) {
                         if (isValidUser) {
-                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/subscription.html';
+                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/subscription-v2.html';
                             try {
                                 const resp = await fetch(subscriptionUrl);
                                 let html = await resp.text();
@@ -903,6 +904,8 @@ export default {
                                 html = html.replace(/__SYNC_RAW__/g, syncRaw);
                                 html = html.replace(/__TOTAL_PROGRESS__/g, totalProgress);
                                 html = html.replace(/__DAILY_PROGRESS__/g, dailyProgress);
+                                // Telegram Support Link
+                                html = html.replace(/__TELEGRAM_SUPPORT_LINK__/g, sysConfig.telegramSupportLink || 'https://t.me/VortixVpn');
                                 return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
                             } catch (e) {
                                 return new Response('Failed to load subscription page', { status: 502 });
@@ -2754,7 +2757,8 @@ async function handleConfigSync(request, env, ctx) {
                 "linkedPanels",
                 "slaveNodes",
                 "githubRepo",
-                "customPanelUrl"
+                "customPanelUrl",
+                "telegramSupportLink"
             ].forEach((k) => delete slaveConfig[k]);
 
             if (nextConfig.linkedPanels && Array.isArray(nextConfig.linkedPanels)) {
