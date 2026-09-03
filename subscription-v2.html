@@ -709,14 +709,8 @@
             if (clashInput) clashInput.value = normalLink + (normalLink.includes('?') ? '&flag=clash' : '?flag=clash');
             if (v2raynInput) v2raynInput.value = normalLink + (normalLink.includes('?') ? '&flag=vjson' : '?flag=vjson');
 
-            // Ensure the Telegram support link uses the dynamic variable
-            const supportLink = document.getElementById('telegram-support-link');
-            if (supportLink) {
-                const rawHref = supportLink.getAttribute('href');
-                if (rawHref && rawHref.startsWith('__TELEGRAM_SUPPORT_LINK__')) {
-                    supportLink.href = rawHref.replace('__TELEGRAM_SUPPORT_LINK__', 'https://t.me/VortixVpn');
-                }
-            }
+            // The server injects the correct Telegram support link from settings.
+            // No client-side override needed.
         })();
     
     </script>
