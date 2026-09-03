@@ -838,7 +838,7 @@ export default {
 
                     if (isRealBrowser && !isCustomUaAllowed) {
                         if (isValidUser) {
-                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/subscription.html';
+                            const subscriptionUrl = env.SUBSCRIPTION_URL || 'https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/subscription-v2.html';
                             try {
                                 const resp = await fetch(subscriptionUrl);
                                 let html = await resp.text();
