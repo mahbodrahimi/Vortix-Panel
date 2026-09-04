@@ -628,10 +628,11 @@ export default {
             // =============================================
             if (reqPath.startsWith('/v1/')) {
                 const parts = reqPath.split('/').filter(Boolean);
+                // Minimum required parts: /v1/name/total/daily/expiry (5 parts)
                 if (parts.length < 5) {
                     return new Response(JSON.stringify({
                         success: false,
-                        error: 'Invalid path. Expected: /v1/{name}/{total-limit}/{daily-limit}/{expiration-in-days}'
+                        error: 'Invalid path. Expected: /v1/{name}/{total-limit}/{daily-limit}/{expiration-in-days}/{allowed-user} (allowed-user is optional)'
                     }), { status: 400, headers: { 'Content-Type': 'application/json' } });
                 }
 
@@ -639,6 +640,18 @@ export default {
                 const totalLimitGB = parseFloat(parts[2]);
                 const dailyLimitGB = parseFloat(parts[3]);
                 const expiryDays = parseInt(parts[4], 10);
+
+                // Optional allowed-user (concurrent connection limit)
+                let allowedUser = null;
+                if (parts.length >= 6) {
+                    allowedUser = parseInt(parts[5], 10);
+                    if (isNaN(allowedUser) || allowedUser < 0) {
+                        return new Response(JSON.stringify({
+                            success: false,
+                            error: 'Invalid allowed-user. Must be a non-negative integer.'
+                        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                    }
+                }
 
                 if (!name || isNaN(totalLimitGB) || isNaN(dailyLimitGB) || isNaN(expiryDays) || totalLimitGB < 0 || dailyLimitGB < 0 || expiryDays < 0) {
                     return new Response(JSON.stringify({
@@ -674,7 +687,8 @@ export default {
                     createdAt: Date.now(),
                     isPaused: false,
                     disabledReason: null,
-                    disabledAt: null
+                    disabledAt: null,
+                    connLimit: allowedUser !== null ? allowedUser : null  // set concurrent connection limit
                 };
 
                 if (!sysConfig.users) sysConfig.users = [];
@@ -692,7 +706,6 @@ export default {
                 const protocol = request.headers.get('X-Forwarded-Proto') || 'https';
                 const subUrl = `${protocol}://${host}/${sysConfig.apiRoute}?sub=${newId}`;
 
-                // Build response with human-readable values
                 const expiryDateStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
 
                 return new Response(JSON.stringify({
@@ -702,7 +715,8 @@ export default {
                         name: name,
                         totalLimitGB: totalLimitGB,
                         dailyLimitGB: dailyLimitGB,
-                        expiryDate: expiryDateStr
+                        expiryDate: expiryDateStr,
+                        allowedUser: allowedUser  // include allowed-user in response
                     },
                     subscriptionUrl: subUrl
                 }), {
