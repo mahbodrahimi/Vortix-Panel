@@ -33,7 +33,7 @@ const SYSTEM_DEFAULTS = {
     maintenanceHost: "https://www.ubuntu.com, https://www.docker.com",
     backupRelay: "",
     customRelay: "",
-    masterKey: "admin",
+    masterKey: "VortixAdmin",
     metricNode: "time.is",
     cleanIps: "",
     slaveNodes: "",
@@ -68,7 +68,7 @@ const SYSTEM_DEFAULTS = {
     syncApiKey: "",
     panelApiKeys: [],
     nat64Prefix: "",
-    enableDirectConfigs: false,
+    enableDirectConfigs: true,
     customRouting: "",
     upstreamUri: "",
     autoUpdate: false,
@@ -967,7 +967,7 @@ export default {
                         if (limitTotal && limitTotal > 0) {
                             limitBytes = Math.floor(limitTotal * (1073741824 / 6000));
                         } else {
-                            limitBytes = 99999 * 1073741824; // 99999 GB in bytes
+                            limitBytes = 0; // 99999 GB in bytes
                         }
                         let expireSec = expiryMs
                             ? Math.floor(expiryMs / 1000)
