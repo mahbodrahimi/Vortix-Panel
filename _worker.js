@@ -2,11 +2,11 @@ import { connect } from "cloudflare:sockets";
 
 /*
  * Vortix Gateway - Cloudflare Worker
- * Version: 3.1.4
+ * Version: 3.1.5
  * Advanced subscription and proxy management system
  */
 
-const CURRENT_VERSION = "3.1.4";
+const CURRENT_VERSION = "3.1.5";
 const UPDATE_URL = "https://raw.githubusercontent.com/mahbodrahimi/Vortix-Panel/refs/heads/main/_worker.js";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
@@ -622,6 +622,97 @@ export default {
             let reqPath = url.pathname;
             if (reqPath.endsWith("/") && reqPath.length > 1)
                 reqPath = reqPath.slice(0, -1);
+
+            // =============================================
+            // NEW API V1 - Auto User Creation
+            // =============================================
+            if (reqPath.startsWith('/v1/')) {
+                const parts = reqPath.split('/').filter(Boolean);
+                if (parts.length < 5) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'Invalid path. Expected: /v1/{name}/{total-limit}/{daily-limit}/{expiration-in-days}'
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const name = decodeURIComponent(parts[1]);
+                const totalLimitGB = parseFloat(parts[2]);
+                const dailyLimitGB = parseFloat(parts[3]);
+                const expiryDays = parseInt(parts[4], 10);
+
+                if (!name || isNaN(totalLimitGB) || isNaN(dailyLimitGB) || isNaN(expiryDays) || totalLimitGB < 0 || dailyLimitGB < 0 || expiryDays < 0) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'Invalid parameters. All limits must be non-negative numbers and name is required.'
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const authHeader = request.headers.get('Authorization') || '';
+                const apiKey = authHeader.replace('Bearer ', '').trim();
+                if (!apiKey || !isPanelApiKey(apiKey)) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'Unauthorized. Provide a valid Panel API Key in Authorization header.'
+                    }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                if (sysConfig.users && sysConfig.users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'A user with this name already exists.'
+                    }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const newId = crypto.randomUUID();
+                const expiryMs = expiryDays > 0 ? Date.now() + (expiryDays * 86400000) : null;
+                const newUser = {
+                    id: newId,
+                    name: name,
+                    limitTotalReq: totalLimitGB > 0 ? Math.floor(totalLimitGB * 6000) : null,
+                    limitDailyReq: dailyLimitGB > 0 ? Math.floor(dailyLimitGB * 6000) : null,
+                    expiryMs: expiryMs,
+                    createdAt: Date.now(),
+                    isPaused: false,
+                    disabledReason: null,
+                    disabledAt: null
+                };
+
+                if (!sysConfig.users) sysConfig.users = [];
+                sysConfig.users.push(newUser);
+                await cachedD1Put(env, 'sys_config', JSON.stringify(sysConfig));
+
+                if (!sysUsageCache.users) sysUsageCache.users = {};
+                const idClean = newId.replace(/-/g, '').toLowerCase();
+                sysUsageCache.users[idClean] = { reqs: 0, dReqs: 0, lastDay: new Date().toISOString().split('T')[0], firstSeen: null };
+                await cachedD1Put(env, 'sys_usage', JSON.stringify(sysUsageCache));
+
+                ctx?.waitUntil(logActivity(env, 'User Created via API v1', `User "${name}" (${newId}) created via API v1`).catch(() => {}));
+
+                const host = request.headers.get('Host') || url.hostname;
+                const protocol = request.headers.get('X-Forwarded-Proto') || 'https';
+                const subUrl = `${protocol}://${host}/${sysConfig.apiRoute}?sub=${newId}`;
+
+                // Build response with human-readable values
+                const expiryDateStr = expiryMs ? new Date(expiryMs).toISOString().split('T')[0] : null;
+
+                return new Response(JSON.stringify({
+                    success: true,
+                    user: {
+                        id: newId,
+                        name: name,
+                        totalLimitGB: totalLimitGB,
+                        dailyLimitGB: dailyLimitGB,
+                        expiryDate: expiryDateStr
+                    },
+                    subscriptionUrl: subUrl
+                }), {
+                    status: 201,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-store'
+                    }
+                });
+            }
 
             const routes = {
                 data: `/${encodeURI(sysConfig.apiRoute)}`,
