@@ -3234,7 +3234,7 @@ const botI18n = {
         tg_strategy: "روش نام‌گذاری",
         tg_prefix: "پیشوند",
         tg_fake_entries: "ورودی‌های اشتراک",
-        tg_cf_settings: "تنظیمات کلودفلر",
+        tg_cf_settings: "تنظیمات اپدیت",
         tg_tg_settings: "تنظیمات تلگرام",
         tg_backup: "پشتیبان‌گیری",
         tg_restore: "بازیابی",
@@ -3259,7 +3259,7 @@ const botI18n = {
         tg_uptime: "زمان کارکرد",
         tg_conns: "اتصالات فعال",
         tg_version: "نسخه",
-        tg_cf_usage: "مصرف کلودفلر",
+        tg_cf_usage: "مصرف حجم",
     },
 };
 
