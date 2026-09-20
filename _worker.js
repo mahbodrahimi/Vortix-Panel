@@ -29,7 +29,7 @@ const safeBtoa = (str) => {
 const SYSTEM_DEFAULTS = {
     version: CURRENT_VERSION,
     name: "",
-    apiRoute: "sync",
+    apiRoute: "panel",
     maintenanceHost: "https://www.ubuntu.com, https://www.docker.com",
     backupRelay: "",
     customRelay: "",
